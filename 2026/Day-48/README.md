@@ -1,9 +1,8 @@
-# DAY 48 
+# DAY 48  - July 2nd, 2026
 # Linux Filesystem
-
+---
 > Based on Linux Filesystem class notes and lab discussions.
-> JUNE 23rd, 2026
-
+> May 9th, 2026 Class
 ---
 
 # Task 1 - Understanding the Linux Filesystem
