@@ -132,30 +132,35 @@ Observe the many different unit files available.
 Display the rescue target.
 
 ```bash
+cd /usr/lib/systemd/system
 ls -l rescue.target
 ```
 
 Display the multi-user target.
 
 ```bash
+cd /usr/lib/systemd/system
 ls -l multi-user.target
 ```
 
 Display the graphical target.
 
 ```bash
+cd /usr/lib/systemd/system
 ls -l graphical.target
 ```
 
 Display the reboot target.
 
 ```bash
+cd /usr/lib/systemd/system
 ls -l reboot.target
 ```
 
 Display the poweroff target.
 
 ```bash
+cd /usr/lib/systemd/system
 ls -l poweroff.target
 ```
 
