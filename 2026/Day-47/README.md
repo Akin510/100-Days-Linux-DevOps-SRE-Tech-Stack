@@ -2,7 +2,7 @@
 ## Course Progress Summary
 
 # Congratulations if you are reading this PAGE!
-> **Date:** May 23, 2026
+> **Date:** JUNE 23RD, 2026
 
 ---
 
