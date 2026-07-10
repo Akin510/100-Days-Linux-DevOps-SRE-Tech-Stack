@@ -1,0 +1,560 @@
+# MODULE 02 – Practice Lab: Tilde Expansion & Brace Expansion
+> **Hands-on Practice Lab – Using Tilde (`~`) and Brace (`{}`) Expansions in Bash**
+
+---
+
+# 🎯 Lab Objective
+
+In this practice lab, you will learn how to:
+
+- Use **Tilde Expansion** to quickly access user home directories.
+- Display home directory paths using the `echo` command.
+- Use **Brace Expansion** to generate multiple strings.
+- Create sequences of numbers and letters.
+- Generate filenames efficiently without typing each one manually.
+- Understand how Brace Expansion can be combined with other Linux commands.
+
+---
+
+# 📖 Introduction
+
+One of the powerful features of the **Bash Shell** is its ability to perform **Shell Expansions**.
+
+These expansions allow Linux to automatically generate text before executing a command.
+
+In this lab, we will focus on two important shell expansions:
+
+- **Tilde Expansion (`~`)**
+- **Brace Expansion (`{}`)**
+
+Both features save time and reduce typing when working on the command line.
+
+---
+
+# Part 1 – Tilde Expansion (`~`)
+
+## What is Tilde Expansion?
+
+The **tilde character (`~`)** is a shortcut that represents a user's **home directory**.
+
+Instead of typing the full path, you can simply use `~`.
+
+For example:
+
+```text
+/home/root
+```
+
+can be represented as:
+
+```text
+~root
+```
+
+Similarly,
+
+```text
+/home/techstart
+```
+
+can be written as:
+
+```text
+~techstart
+```
+
+---
+
+# 🔬 Lab 1 – Display Root User's Home Directory
+
+Use the `echo` command.
+
+```bash
+echo ~root
+```
+
+Expected Output:
+
+```text
+/root
+```
+
+### Explanation
+
+| Command | Meaning |
+|----------|---------|
+| `echo` | Display text on the screen |
+| `~root` | Home directory of the user **root** |
+
+---
+
+# 🔬 Lab 2 – Display Another User's Home Directory
+
+Suppose another user named **techstart** exists.
+
+Run:
+
+```bash
+echo ~techstart
+```
+
+Expected Output:
+
+```text
+/home/techstart
+```
+
+The Bash shell automatically expands the tilde into the user's home directory.
+
+---
+
+# Why Use Tilde Expansion?
+
+Instead of typing:
+
+```text
+/home/techstart
+```
+
+You can simply write:
+
+```text
+~techstart
+```
+
+This makes commands shorter and easier to remember.
+
+---
+
+# Part 2 – Brace Expansion (`{}`)
+
+## What is Brace Expansion?
+
+Brace Expansion automatically generates multiple strings from a single expression.
+
+Instead of typing many similar words manually, Bash creates them for you.
+
+It is commonly used for:
+
+- Creating filenames
+- Creating directories
+- Generating sequences
+- Automating repetitive tasks
+
+---
+
+# 🔬 Lab 3 – Generate Multiple Filenames
+
+Use the following command.
+
+```bash
+echo {Sunday,Monday,Tuesday,Wednesday}.log
+```
+
+Expected Output:
+
+```text
+Sunday.log
+Monday.log
+Tuesday.log
+Wednesday.log
+```
+
+### Explanation
+
+| Part | Meaning |
+|------|---------|
+| `{Sunday,Monday,...}` | Generate multiple words |
+| `.log` | Append the `.log` extension to each word |
+
+---
+
+# 🔬 Lab 4 – Generate Numbered Filenames
+
+Use:
+
+```bash
+echo file{1..10}.txt
+```
+
+Expected Output:
+
+```text
+file1.txt
+file2.txt
+file3.txt
+file4.txt
+file5.txt
+file6.txt
+file7.txt
+file8.txt
+file9.txt
+file10.txt
+```
+
+### Explanation
+
+```text
+{1..10}
+```
+
+Creates the sequence:
+
+```text
+1 2 3 4 5 6 7 8 9 10
+```
+
+The `.txt` extension is automatically added to every filename.
+
+---
+
+# 🔬 Lab 5 – Generate Alphabetical Filenames
+
+Use:
+
+```bash
+echo file{a..e}.txt
+```
+
+Expected Output:
+
+```text
+filea.txt
+fileb.txt
+filec.txt
+filed.txt
+filee.txt
+```
+
+### Explanation
+
+```text
+{a..e}
+```
+
+Generates:
+
+```text
+a b c d e
+```
+
+---
+
+# 🔬 Lab 6 – Multiple Brace Expansions
+
+Brace expansions can be nested.
+
+Example:
+
+```bash
+echo file{a,b}{1,2}.txt
+```
+
+Expected Output:
+
+```text
+filea1.txt
+filea2.txt
+fileb1.txt
+fileb2.txt
+```
+
+### Explanation
+
+The Bash shell combines every value from the first brace with every value from the second brace.
+
+Result:
+
+```text
+a + 1
+a + 2
+b + 1
+b + 2
+```
+
+---
+
+# Understanding Nested Brace Expansion
+
+```text
+{a,b}
+```
+
+Produces:
+
+```text
+a
+b
+```
+
+```text
+{1,2}
+```
+
+Produces:
+
+```text
+1
+2
+```
+
+Bash combines both groups automatically.
+
+---
+
+# Using Brace Expansion with Other Commands
+
+Brace Expansion is not limited to the `echo` command.
+
+It can be used with many Linux commands.
+
+For example:
+
+Create multiple files:
+
+```bash
+touch file{1..5}.txt
+```
+
+Creates:
+
+```text
+file1.txt
+file2.txt
+file3.txt
+file4.txt
+file5.txt
+```
+
+---
+
+Create multiple directories:
+
+```bash
+mkdir project{1..3}
+```
+
+Creates:
+
+```text
+project1
+project2
+project3
+```
+
+---
+
+# Practice Examples
+
+| Command | Result |
+|----------|--------|
+| `echo ~root` | Display root user's home directory |
+| `echo ~techstart` | Display techstart user's home directory |
+| `echo {Sunday,Monday}.log` | Generate multiple log filenames |
+| `echo file{1..5}.txt` | Generate numbered filenames |
+| `echo file{a..e}.txt` | Generate alphabetical filenames |
+| `echo file{a,b}{1,2}.txt` | Generate combinations of filenames |
+
+---
+
+# 🧪 Practice Exercises
+
+---
+
+## Exercise 1
+
+Display your own home directory.
+
+```bash
+echo ~
+```
+
+---
+
+## Exercise 2
+
+Display the root user's home directory.
+
+```bash
+echo ~root
+```
+
+---
+
+## Exercise 3
+
+Generate weekday log files.
+
+```bash
+echo {Monday,Tuesday,Wednesday,Thursday,Friday}.log
+```
+
+---
+
+## Exercise 4
+
+Generate numbered filenames.
+
+```bash
+echo backup{1..10}.tar
+```
+
+---
+
+## Exercise 5
+
+Generate alphabetical filenames.
+
+```bash
+echo report{a..f}.txt
+```
+
+---
+
+## Exercise 6
+
+Generate combinations.
+
+```bash
+echo server{A,B}{1,2,3}
+```
+
+Expected Output:
+
+```text
+serverA1
+serverA2
+serverA3
+serverB1
+serverB2
+serverB3
+```
+
+---
+
+## Exercise 7
+
+Create multiple files.
+
+```bash
+touch file{1..5}.txt
+```
+
+Verify:
+
+```bash
+ls
+```
+
+---
+
+## Exercise 8
+
+Create multiple directories.
+
+```bash
+mkdir lab{1..4}
+```
+
+Verify:
+
+```bash
+ls
+```
+
+---
+
+# 🔧 Troubleshooting Scenarios
+
+### Scenario 1
+
+The user types:
+
+```bash
+echo ~unknownuser
+```
+
+If the user does not exist, Bash cannot expand the home directory.
+
+---
+
+### Scenario 2
+
+Incorrect Brace Syntax.
+
+Example:
+
+```bash
+echo file{1-5}.txt
+```
+
+This does **not** generate a sequence.
+
+Correct syntax:
+
+```bash
+echo file{1..5}.txt
+```
+
+---
+
+### Scenario 3
+
+Forgot the Closing Brace.
+
+Incorrect:
+
+```bash
+echo {Monday,Tuesday
+```
+
+Correct:
+
+```bash
+echo {Monday,Tuesday}
+```
+
+---
+
+# 📌 Quick Revision
+
+| Expansion | Purpose |
+|------------|---------|
+| `~` | User's home directory |
+| `~root` | Root user's home directory |
+| `{a,b,c}` | Generate multiple words |
+| `{1..5}` | Generate number sequence |
+| `{a..z}` | Generate alphabet sequence |
+| `{a,b}{1,2}` | Generate combinations |
+
+---
+
+# 📖 Key Takeaways
+
+- The tilde (`~`) represents a user's home directory.
+- Brace Expansion automatically generates multiple strings.
+- Number sequences can be created using `{1..10}`.
+- Letter sequences can be created using `{a..z}`.
+- Nested brace expansion generates every possible combination.
+- Brace Expansion works with many Linux commands, not just `echo`.
+
+---
+
+# 💡 Remember
+
+> **Think of Bash Expansions as automatic typing assistants.**
+>
+> - **Tilde Expansion (`~`)** quickly finds a user's home directory.
+> - **Brace Expansion (`{}`)** automatically generates multiple words, numbers, or filenames.
+>
+> **Golden Rules:**
+>
+> ```text
+> ~          = Home Directory
+> {a,b,c}    = Multiple Words
+> {1..10}    = Number Sequence
+> {a..z}     = Letter Sequence
+> {a,b}{1,2} = All Possible Combinations
+> ```
+>
+> **Mastering shell expansions can save a tremendous amount of typing and make your Linux commands much more efficient.**
