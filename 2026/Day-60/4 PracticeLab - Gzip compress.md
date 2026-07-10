@@ -1,4 +1,4 @@
-# MODULE 07 – Practice Lab: Creating a Compressed TAR Archive
+# MODULE 07 – Practice Lab: Creating a Compressed TAR Archive (GZIP)
 > **Hands-on Practice Lab – Compressing TAR Archives Using gzip**
 
 ---
