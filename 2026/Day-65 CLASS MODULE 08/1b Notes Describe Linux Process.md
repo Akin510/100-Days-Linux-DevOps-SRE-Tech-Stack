@@ -1,515 +1,358 @@
-# MODULE 08 – Monitor and Manage Linux Processes
-> **Linux Processes Ka Introduction (Roman Urdu)**
-
-> **DAY 65**
-> **JULY 11TH, 2026**
+# MODULE 08 – Describing a Process (How It Works)
+> **Understanding Linux Process States and the Process Life Cycle**
 
 ---
 
 # 🎯 Learning Objectives
 
-Is module mein aap seekhenge:
+In this lesson, you will learn:
 
-- Linux Process kya hota hai?
-- Process kis tarah create hota hai?
-- Process Life Cycle.
-- Parent aur Child Processes.
-- Process Forking.
-- Process IDs (PID & PPID).
-- Process Environment.
-- Process States.
-- Linux System Administrator ke liye Process Management kyun important hai.
+- What a Linux process is.
+- How a process moves through different states during execution.
+- The Linux Process Life Cycle.
+- The responsibilities of the Linux Kernel in process management.
+- New, Ready, Running, Waiting, Exit, and Zombie states.
+- How CPU scheduling works.
+- Why understanding process states is important for Linux administrators.
 
 ---
 
 # 📖 Introduction
 
-Linux system par jo bhi kaam hota hai woh **Process** ki shakal mein hota hai.
+A **process** is simply an **instance of a running program**.
 
-Jab bhi aap koi command execute karte hain, koi program start karte hain ya koi script run karte hain, Linux us kaam ko perform karne ke liye ek ya zyada processes create karta hai.
+Another way to define a process is:
 
-Linux ka **Kernel** processes ko create, schedule, manage aur terminate karta hai.
+> **A set of executable instructions loaded into memory and executed by the CPU.**
 
-Agar processes na hon to Linux koi bhi kaam perform nahi kar sakta.
+During its lifetime, every process moves through several different states before it completes execution.
 
----
+Understanding these states is essential for troubleshooting Linux systems and understanding how the operating system manages workloads.
 
-# 1. Process Kya Hai?
-
-**Process** hota hai:
-
-> **Kisi running program ki ek instance.**
-
-Ya
-
-> **Ek executable program ki running instance jo operating system ne launch ki ho.**
-
-Simple alfaaz mein:
-
-- Disk par mojood Program → **Static**
-- Memory mein chal raha Program → **Process**
+The **Linux Kernel** is responsible for managing every process on the system. It keeps track of all running processes, schedules CPU time, allocates resources, and controls the transitions between different process states.
 
 ---
 
-# Process Ki Example
+# Linux Process Life Cycle
 
-Suppose aap ye command chalate hain:
+<img src="../../.github/assets/Process States.png" width="700">
+
+Every Linux process typically moves through the following states:
+
+```text
+           fork()
+             │
+             ▼
+         New State
+             │
+             ▼
+        Ready State
+             │
+             ▼
+       Running State
+        /          \
+       /            \
+Waiting/Sleep     Exit
+       │             │
+       ▼             ▼
+    Running       Zombie
+```
+
+---
+
+# 1. New State
+
+The **New State** is the first state in the life cycle of a process.
+
+A process enters this state immediately after it is created.
+
+During this stage, the Kernel:
+
+- Creates the process.
+- Assigns a Process ID (PID).
+- Allocates memory.
+- Initializes system resources.
+
+At this point, the process has not yet started executing.
+
+---
+
+# 2. Ready State
+
+After being created, the process moves into the **Ready State**.
+
+A process in the Ready State:
+
+- Has all the resources required for execution.
+- Is waiting for CPU time.
+- Is ready to execute as soon as the scheduler selects it.
+
+Multiple processes can exist in the Ready Queue simultaneously.
+
+The Linux Kernel decides which process should execute next based on its **CPU scheduling algorithm** and process priority.
+
+---
+
+# 3. Running State
+
+When the CPU scheduler selects a process from the Ready Queue, it enters the **Running State**.
+
+The CPU begins executing the instructions of the process.
+
+For example, if a user executes:
 
 ```bash
 pwd
 ```
 
-Background mein kya hota hai?
+Linux creates a process that executes the command.
 
-1. Bash command receive karta hai.
-2. Linux ek naya process create karta hai.
-3. Kernel us process ko allocate karta hai:
-   - CPU Time
-   - Memory
-4. Process `pwd` command execute karta hai.
-5. Current Working Directory display hoti hai.
-6. Process apna kaam complete karke exit ho jata hai.
+The process:
+
+- Uses CPU time.
+- Reads memory.
+- Executes program instructions.
+- Produces the required output.
 
 ---
 
-# Ek Aur Example
+# CPU Scheduling
 
-Suppose aap ek backup script execute karte hain.
+Many processes may be waiting in the Ready Queue.
 
-```bash
-./backup.sh
-```
+The Kernel uses a **CPU Scheduling Algorithm** to determine:
 
-Linux ye kaam karta hai:
+- Which process should execute first.
+- How long the process should run.
+- When another process should receive CPU time.
 
-- Ek process create karta hai.
-- CPU allocate karta hai.
-- RAM allocate karta hai.
-- Script execute karta hai.
-- Zarurat ho to child processes create karta hai.
-- Execution complete karta hai.
-- Resources release kar deta hai.
+Processes with higher priority may be selected before lower-priority processes.
 
 ---
 
-# Process Ki Definition
+# 4. Waiting (Blocked) State
 
-Process simply hota hai:
+While executing, a process may need to wait for another operation to complete.
 
-> **Executable instructions ka ek set jo memory mein load hota hai aur CPU execute karta hai.**
+Common reasons include:
 
-Har process ko Linux Kernel system resources provide karta hai.
+- Reading data from disk.
+- Writing data to a file.
+- Waiting for network communication.
+- Waiting for user input.
+- Waiting for a child process to finish.
 
----
+When this happens, the process enters the:
 
-# 📊 Process Life Cycle Diagram
+> **Waiting (Blocked) State**
 
-Neeche diya gaya diagram dikhata hai ke Linux process kis tarah create hota hai, child process banata hai aur aakhir mein exit hota hai.
-
-```markdown
-![Linux Process Life Cycle](image(523).png)
-```
-
-### Diagram Ki Explanation
-
-1. Ek **Process** execution start karta hai.
-2. Zarurat par woh **fork()** system call ki madad se ek **Child Process** create karta hai.
-3. Child Process **exec()** ke zariye koi doosra program execute kar sakta hai.
-4. Jab execution complete hoti hai to Child Process **Exit** karta hai.
-5. Jab tak Parent us ka exit status collect nahi karta, Child temporarily **Zombie Process** ban jata hai.
-6. Parent ke acknowledge karne ke baad Zombie entry remove ho jati hai.
+While the process is waiting, the CPU is assigned to another ready process.
 
 ---
 
-# 2. Process Ke Components
+# Example: Waiting State
 
-Har process ke kuch important components hote hain.
+Suppose a process is currently running.
 
----
+During execution, it creates a child process that begins writing data to the disk.
 
-## Memory Space
+Since disk operations may take time, the parent process waits for the child process to complete.
 
-Har process ko apni alag memory allocate ki jati hai.
+The parent process enters the **Waiting (Blocked) State** until the required operation finishes.
 
-Is memory mein hota hai:
-
-- Program Code
-- Variables
-- Stack
-- Heap
+Once the disk operation completes, the process returns to the Running State.
 
 ---
 
-## Security Information
+# Sleeping State
 
-Har process ke paas hota hai:
+A sleeping process is another form of a waiting process.
 
-- Owner (User)
-- Group
-- Permissions
-- Privileges
+Examples include:
 
-Ye decide karte hain ke process kya kya kaam kar sakta hai.
+- Waiting for I/O operations.
+- Waiting for child processes.
+- Executing the `sleep` command.
+- Waiting for timers to expire.
 
----
-
-## Execution Threads
-
-Har process mein ek ya zyada execution threads hote hain.
-
-Ye threads program ki instructions execute karte hain.
+While sleeping, the process temporarily pauses execution until the required event occurs.
 
 ---
 
-## Process State
+# 5. Exit (Termination) State
 
-Har process kisi na kisi state mein hota hai.
+When a process completes its work, it enters the **Exit State**, also known as the **Termination State**.
 
-Misal:
+At this stage, the Kernel:
 
-- Running
-- Sleeping
-- Waiting
-- Stopped
-- Zombie
+- Stops the process.
+- Releases allocated memory.
+- Closes open files.
+- Frees CPU resources.
+- Cleans up system resources.
 
-In states ko hum aglay lessons mein detail se padhenge.
-
----
-
-# 3. Process Environment
-
-Har process ke saath ek **Environment** bhi hota hai.
-
-Is mein shamil hota hai:
-
-- Local Variables
-- Environment Variables
-- Current Working Directory
-- Open Files
-- File Descriptors
-- Network Ports
-- Allocated Resources
-
-Ye tamam resources process ke saath us ki execution ke dauran attached rehte hain.
+The process has finished execution.
 
 ---
 
-# 4. Process Creation (Fork)
+# Zombie Process
 
-Linux naye process create karta hai ek system call ke zariye jiska naam hai:
+Sometimes a process completes execution, but its Parent Process has not yet collected its exit status.
 
-```text
-fork()
-```
-
-**fork()** Parent Process ki copy bana kar ek naya process create karta hai.
-
-Naye process ko kehte hain:
-
-> **Child Process**
-
-Aur original process ko kehte hain:
-
-> **Parent Process**
-
----
-
-# Parent Aur Child Process
-
-Example:
-
-```text
-Parent Process
-        │
-     fork()
-        │
-        ▼
-Child Process
-```
-
-Child Process shuru mein Parent Process ki bohot si properties inherit karta hai.
-
----
-
-# 5. Child Process Kya Inherit Karta Hai?
-
-Jab Child Process create hota hai to woh Parent Process se bohot si cheezen inherit karta hai.
-
-Jaise:
-
-- Security Identity
-- User ID
-- Group ID
-- File Descriptors
-- Environment Variables
-- Resource Limits
-- Program Code
-- Current Working Directory
-
-Us ke baad Child Process apna alag code bhi execute kar sakta hai.
-
----
-
-# 6. Process IDs (PID)
-
-Har process ko ek unique number diya jata hai jise kehte hain:
-
-> **PID (Process ID)**
-
-Example:
-
-```text
-PID = 3521
-```
-
-Linux PID ko use karta hai:
-
-- Process ko track karne ke liye.
-- Resources manage karne ke liye.
-- Signals bhejne ke liye.
-- Security maintain karne ke liye.
-
----
-
-# Parent Process ID (PPID)
-
-Har Child Process ke paas Parent Process ka ID bhi hota hai.
-
-Usay kehte hain:
-
-> **PPID (Parent Process ID)**
-
-Example:
-
-```text
-Parent Process
-PID = 1000
-
-Child Process
-PID = 1100
-PPID = 1000
-```
-
----
-
-# 7. Har Process Child Process Bana Sakta Hai
-
-Har running process ek ya zyada Child Processes create kar sakta hai.
-
-Example:
-
-```text
-Process A
-    │
-    ├── Process B
-    │
-    ├── Process C
-    │
-    └── Process D
-```
-
-Aur har Child Process bhi mazeed Child Processes create kar sakta hai.
-
----
-
-# 8. Agar Parent Process Terminate Ho Jaye To Kya Hota Hai?
-
-Normally:
-
-Agar Parent Process terminate ho jaye,
-
-to Child Processes ya to terminate ho jate hain ya phir operating system unhein dobara kisi aur Parent ke saath attach kar deta hai.
-
-Modern Linux systems mein orphan processes ko:
-
-```text
-systemd (PID 1)
-```
-
-adopt kar leta hai.
-
----
-
-# 9. Linux Ka Sab Se Pehla Process
-
-Modern Red Hat based Linux systems mein boot ke waqt sab se pehla process hota hai:
-
-```text
-systemd
-```
-
-Is ka:
-
-```text
-PID = 1
-```
-
-System ke tamam processes aakhir mein **systemd** se hi originate hote hain.
-
----
-
-# 10. Parent Process Sleep Mode Mein
-
-Aksar Parent Process wait karta hai jab us ka Child Process execute ho raha hota hai.
-
-Example:
-
-```text
-Parent Process
-      │
-      ▼
-Sleep (Waiting)
-      │
-      ▼
-Child Executes
-```
-
-Parent Process Child ke complete hone tak wait state mein rehta hai.
-
----
-
-# 11. Child Process Complete Hone Ke Baad
-
-Jab Child Process finish hota hai:
-
-- Resources release ho jate hain.
-- Memory clean ho jati hai.
-- Open files close ho jati hain.
-- CPU resources free ho jate hain.
-
-Completely remove hone se pehle process kuch dair ke liye:
+During this short period, the process becomes a:
 
 > **Zombie Process**
 
-ban jata hai.
+A Zombie Process:
+
+- Has already completed execution.
+- Uses almost no CPU.
+- Occupies only an entry in the Process Table.
+- Exists until the Parent Process reads its exit status.
+
+Once the Parent Process acknowledges the child's completion, the Zombie entry is removed.
 
 ---
 
-# 12. Zombie Process
+# Common Linux Process States
 
-Zombie Process hota hai:
+Linux displays several different process states.
 
-> **Aisa process jo apna execution complete kar chuka ho lekin Parent Process ne abhi tak us ka exit status collect na kiya ho.**
-
-Zombie Process system resources bohot kam use karta hai.
-
-Ye sirf Process Table mein ek entry occupy karta hai.
-
----
-
-# 13. Processes Important Kyun Hain?
-
-Linux Processes operating system ko ye kaam karne ki sahulat dete hain:
-
-- Multiple programs ko ek saath chalana.
-- CPU Scheduling.
-- Memory ko efficiently allocate karna.
-- Applications ko isolate karna.
-- Multitasking improve karna.
-- Security provide karna.
+| State | Description |
+|--------|-------------|
+| New | Process has just been created. |
+| Ready | Process is waiting for CPU time. |
+| Running | Process is currently executing. |
+| Waiting / Blocked | Process is waiting for an event or I/O operation. |
+| Sleeping | Process is temporarily paused while waiting. |
+| Stopped | Process execution has been suspended. |
+| Zombie | Process has completed but still has an entry in the process table. |
+| Exit | Process has terminated successfully. |
 
 ---
 
-# Real-World Example
+# Additional Linux Process State Codes
 
-Suppose aap chalate hain:
+When viewing processes using commands such as `ps` or `top`, you may encounter additional process state codes.
 
-```bash
-firefox
-```
-
-Linux Firefox ka ek process create karta hai.
-
-Firefox mazeed Child Processes create kar sakta hai:
-
-- Rendering Engine
-- GPU Process
-- Network Process
-- Audio Process
-
-Har Child Process alag kaam perform karta hai.
+| Code | Meaning |
+|------|---------|
+| R | Running or Runnable |
+| S | Interruptible Sleep |
+| D | Uninterruptible Sleep (usually waiting for I/O) |
+| I | Idle Kernel Thread |
+| T | Stopped Process |
+| t | Traced or Debugged Process |
+| Z | Zombie Process |
+| X | Dead Process (rarely seen) |
 
 ---
 
-# Process Creation Flow
+# Process State Flow
 
 ```text
-User Command Chalata Hai
-        │
-        ▼
-Kernel Process Create Karta Hai
-        │
-        ▼
-CPU Aur Memory Allocate Hoti Hai
-        │
-        ▼
-Program Execute Hota Hai
-        │
-        ▼
-Zarurat Par Child Processes Create Hote Hain
-        │
-        ▼
-Execution Complete Hoti Hai
-        │
-        ▼
-Resources Release Hote Hain
-        │
-        ▼
-Zombie Entry Remove Ho Jati Hai
+fork()
+   │
+   ▼
+New
+   │
+   ▼
+Ready
+   │
+   ▼
+Running
+   │
+   ├─────────────┐
+   ▼             │
+Waiting/Sleep    │
+   │             │
+   └─────────────┘
+         │
+         ▼
+      Running
+         │
+         ▼
+       Exit
+         │
+         ▼
+      Zombie
 ```
+
+---
+
+# Why Understanding Process States Is Important
+
+Linux administrators must understand process states because they help:
+
+- Troubleshoot slow systems.
+- Identify blocked processes.
+- Detect zombie processes.
+- Analyze CPU scheduling.
+- Monitor system performance.
+- Diagnose I/O bottlenecks.
+- Understand application behavior.
 
 ---
 
 # 📌 Quick Revision
 
-| Term | Matlab |
-|------|--------|
-| Process | Running Program ki Instance |
-| PID | Process ID |
-| PPID | Parent Process ID |
-| Parent Process | Original Process |
-| Child Process | `fork()` se create hota hai |
-| fork() | Child Process create karta hai |
-| exec() | Process ke andar naya program execute karta hai |
-| Zombie | Exit hone ke baad Process Table mein temporary entry |
-| systemd | Linux ka pehla process (PID 1) |
+| State | Purpose |
+|--------|---------|
+| New | Process is created. |
+| Ready | Waiting for CPU time. |
+| Running | CPU is executing the process. |
+| Waiting | Waiting for I/O or another event. |
+| Sleeping | Temporarily paused. |
+| Exit | Execution completed. |
+| Zombie | Waiting for the parent to collect exit status. |
 
 ---
 
 # 📖 Key Takeaways
 
-- Har running program ek Process hota hai.
-- Har Process ko Kernel CPU aur Memory allocate karta hai.
-- Har Process ka apna unique PID hota hai.
-- Child Processes `fork()` se create hote hain.
-- Child Processes Parent ki bohot si properties inherit karte hain.
-- Parent aksar Child Process ke complete hone ka wait karta hai.
-- Finish hone ke baad Process temporarily Zombie ban sakta hai.
-- Linux ke tamam Processes aakhir mein **systemd (PID 1)** se originate hote hain.
+- Every process moves through multiple states during execution.
+- The Linux Kernel manages all process state transitions.
+- New processes enter the Ready Queue before execution.
+- The CPU Scheduler selects which process runs next.
+- Running processes may enter the Waiting or Sleeping state while waiting for resources.
+- Completed processes enter the Exit state.
+- Zombie processes remain temporarily until the Parent Process collects their exit status.
+- Understanding process states is essential for Linux administration and troubleshooting.
 
 ---
 
-# 💡 Yaad Rakhein
+# 💡 Remember
 
-> **Process ko ek company ke employee ki tarah samjhein.**
+> **Think of a process as a customer waiting at a bank.**
 >
-> - **Kernel** Company ka Manager hai.
-> - **Program** Job Description hai.
-> - **Process** Employee hai jo kaam kar raha hai.
-> - **fork()** ek naya Employee (Child Process) hire karta hai.
-> - **exec()** us Employee ko naya kaam deta hai.
-> - Kaam complete hone ke baad Employee exit kar jata hai.
-> - Jab tak HR (Parent Process) paperwork complete nahi karta, Employee temporarily **Zombie Process** ki surat mein nazar aata hai.
+> - **New** → The customer enters the bank.
+> - **Ready** → Waiting in line.
+> - **Running** → Being served by the teller.
+> - **Waiting** → Waiting for documents or approval.
+> - **Running Again** → Service resumes.
+> - **Exit** → Customer leaves the bank.
+> - **Zombie** → The paperwork remains until it is officially filed.
 >
-> **Golden Rule Yaad Rakhein:**
+> **Golden Rule:**
 >
 > ```text
-> Program Disk Par
->        │
->        ▼
-> Memory Mein Run Kare
->        │
->        ▼
-> Process
+> New
+>   │
+>   ▼
+> Ready
+>   │
+>   ▼
+> Running
+>   │
+>   ▼
+> Waiting
+>   │
+>   ▼
+> Running
+>   │
+>   ▼
+> Exit
+>   │
+>   ▼
+> Zombie
 > ```

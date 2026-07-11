@@ -1,0 +1,366 @@
+# Moddule 08: Describing Linux Process
+# Real-World Example
+
+# Real-World Example
+
+Suppose you run the following command:
+
+```bash
+firefox
+```
+
+Linux creates a Firefox process.
+
+Firefox may create several child processes, such as:
+
+- Rendering Engine
+- GPU Process
+- Network Process
+- Audio Process
+
+Each child process performs a separate task independently.
+
+This enables Linux to efficiently manage multitasking.
+
+---
+
+# Process Creation Flow
+
+```text
+User Runs a Command
+        │
+        ▼
+Kernel Creates a Process
+        │
+        ▼
+CPU and Memory Are Allocated
+        │
+        ▼
+Program Executes
+        │
+        ▼
+Child Processes Created (If Required)
+        │
+        ▼
+Execution Completed
+        │
+        ▼
+Resources Released
+        │
+        ▼
+Zombie Entry Removed
+```
+
+---
+
+# 📌 Quick Revision
+
+| Term | Description |
+|------|-------------|
+| Process | Running instance of a program |
+| PID | Process ID |
+| PPID | Parent Process ID |
+| Parent Process | Original process |
+| Child Process | Created using `fork()` |
+| `fork()` | Creates a child process |
+| `exec()` | Replaces the current process image with a new program |
+| Zombie | A terminated process that still has an entry in the process table |
+| `systemd` | The first Linux process (PID 1) |
+
+---
+
+# 📖 Key Takeaways
+
+- Every running program is a process.
+- Every process receives CPU time and memory from the Linux Kernel.
+- Every process has a unique Process ID (PID).
+- Child processes are created using the `fork()` system call.
+- Child processes inherit many properties from their parent process.
+- Parent processes often wait while child processes complete execution.
+- A completed process may briefly become a Zombie process.
+- All Linux processes ultimately originate from **systemd (PID 1)**.
+
+---
+
+# 💡 Remember
+
+> **Think of a Process as an employee in a company.**
+>
+> - The **Kernel** is the Manager.
+> - The **Program** is the Job Description.
+> - The **Process** is the Employee performing the work.
+> - The **fork()** system call hires a new employee (Child Process).
+> - The **exec()** system call assigns a new job to that employee.
+> - When the work is complete, the employee exits.
+> - Until HR (the Parent Process) finishes the paperwork, the employee briefly appears as a **Zombie Process**.
+
+---
+
+## Golden Rule
+
+```text
+Program Stored on Disk
+        │
+        ▼
+Loaded into Memory
+        │
+        ▼
+Executed by the CPU
+        │
+        ▼
+Process
+```
+
+---
+
+# MODULE 08 – Describe Process States
+> **Understanding Linux Process States and the Process Life Cycle**
+
+---
+
+# 🎯 Learning Objectives
+
+In this lesson, you will learn:
+
+- What is a Process State?
+- Linux Process Life Cycle.
+- How the Kernel manages processes.
+- New State.
+- Ready State.
+- Running State.
+- Waiting (Blocked) State.
+- Sleeping State.
+- Exit State.
+- Zombie State.
+- Process State Codes.
+
+---
+
+# 📖 Introduction
+
+We have already learned that:
+
+> **A process is an instance of a running program.**
+
+However, every process passes through several different states during its execution.
+
+The Linux Kernel continuously tracks and manages the state of every process.
+
+This sequence of states is known as the **Process Life Cycle**.
+
+---
+
+# Linux Process Life Cycle
+
+A process normally moves through the following states:
+
+```text
+New
+   │
+   ▼
+Ready
+   │
+   ▼
+Running
+   │
+   ├──────────────┐
+   ▼              │
+Waiting / Sleep   │
+   │              │
+   └──────────────┘
+        │
+        ▼
+      Running
+        │
+        ▼
+       Exit
+        │
+        ▼
+      Zombie
+```
+
+---
+
+# 1. New State
+
+When a process is created for the first time, it enters the:
+
+> **New State**
+
+During this stage, the Kernel:
+
+- Assigns a Process ID (PID).
+- Allocates memory.
+- Prepares system resources.
+
+The process is now ready to begin execution.
+
+---
+
+# 2. Ready State
+
+After being created, the process moves into the:
+
+> **Ready State**
+
+A process in the Ready State:
+
+- Is prepared for execution.
+- Waits for CPU time.
+- Is scheduled by the Kernel Scheduler.
+
+The Kernel decides which process receives CPU time based on the scheduling algorithm.
+
+Many processes can exist in the Ready Queue simultaneously.
+
+---
+
+# 3. Running State
+
+When the Kernel Scheduler allocates CPU time to a process, it enters the:
+
+> **Running State**
+
+The CPU begins executing the process instructions.
+
+Examples include:
+
+```bash
+pwd
+```
+
+```bash
+ls
+```
+
+```bash
+tar -cvf backup.tar /etc
+```
+
+Each of these commands executes as a running process.
+
+---
+
+# What Happens in the Running State?
+
+While running, a process may:
+
+- Use CPU time.
+- Execute program instructions.
+- Access memory.
+- Read and write files.
+- Perform system calls.
+
+During execution, the process may transition to another state if necessary.
+
+---
+
+# 4. Waiting (Blocked) State
+
+Sometimes a running process must wait for an event before continuing.
+
+Examples include:
+
+- Reading data from disk.
+- Waiting for a network response.
+- Waiting for a file write operation to complete.
+- Waiting for a child process to finish.
+
+In these situations, the process enters the:
+
+> **Waiting (Blocked) State**
+
+The CPU is then assigned to another process.
+
+---
+
+# Example
+
+Suppose a backup script is writing data to disk.
+
+Until the disk operation completes, the process remains in:
+
+```text
+Running
+      │
+      ▼
+Waiting
+```
+
+Once the I/O operation finishes, the process returns to the Running State.
+
+---
+
+# 5. Sleeping State
+
+Sleeping is a special type of waiting state.
+
+Examples include:
+
+```bash
+sleep 30
+```
+
+or a parent process waiting for a child process to finish.
+
+The process temporarily pauses execution until the required event occurs.
+
+---
+
+# 6. Exit State
+
+When a process completes its task, it enters the:
+
+> **Exit State**
+
+The Kernel then:
+
+- Releases allocated memory.
+- Frees CPU resources.
+- Closes open files.
+- Releases all allocated system resources.
+
+---
+
+# 7. Zombie State
+
+After a process exits, its Parent Process may not have collected its exit status yet.
+
+During this short period, the process becomes a:
+
+> **Zombie Process**
+
+A Zombie Process:
+
+- Does not consume CPU time.
+- Uses almost no memory.
+- Occupies only an entry in the Process Table.
+
+---
+
+# Parent and Child Relationship
+
+Example:
+
+```text
+Parent Process
+        │
+        ▼
+     fork()
+        │
+        ▼
+Child Process
+        │
+        ▼
+Running
+        │
+        ▼
+Exit
+        │
+        ▼
+Zombie
+```
+
+Once the Parent Process reads the child's exit status, the Zombie process is removed.
+
+---
