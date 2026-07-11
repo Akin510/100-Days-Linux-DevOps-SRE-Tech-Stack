@@ -1,4 +1,4 @@
-# MODULE 08 – SSH Practice Lab 1
+# MODULE 08 – Practice Lab - SSH Practice Lab 1
 > **Configure SSH Key-Based Authentication Between Two Linux Servers**
 
 > **Scenario:** Configure passwordless SSH access for the `oradb` user from **Server 1** to **Server 2**.
