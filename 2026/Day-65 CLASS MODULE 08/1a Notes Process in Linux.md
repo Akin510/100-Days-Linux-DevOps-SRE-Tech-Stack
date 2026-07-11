@@ -33,7 +33,7 @@ The Linux **Kernel** is responsible for creating, scheduling, managing, and term
 Without processes, Linux cannot perform any work.
 
 ---
-<img src="../../.github/assets/Process Flow Chart.png" width="700">
+<img src="../../.github/assets/Process Flow Chart.png" width="1000">
 
 ---
 # 1. What is a Process?
