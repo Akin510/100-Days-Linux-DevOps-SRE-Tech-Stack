@@ -21,7 +21,37 @@ In this lesson, you will learn:
 ---
 
 # 📖 Introduction
+---
+## SSH Authentication Flow Diagram
 
+```text
+  [ SSH Client ]                                         [ SSH Server ]
+        |                                                      |
+        | ------------ 1. Initiates Connection --------------> |
+        |                                                      |
+        | <----------- 2. Sends Server Host Key -------------- |
+        |                                                      |
+  ============= SECURITY CHECK #1 =============                |
+  | Client checks local 'known_hosts' file.   |                |
+  | Matches? Server identity is VERIFIED.     |                |
+  =============================================                |
+        |                                                      |
+        |                                                      |
+        | === 3. Establish Secure Encrypted Tunnel (Session) ==|
+        |======================================================|
+        |                                                      |
+        |                                                      |
+        | ---------- 4. Sends User Credentials --------------> |
+        |            (Password or Client Private Key)          |
+        |                                                      |
+        |                                        ============= SECURITY CHECK #2 =============
+        |                                        | Server checks 'authorized_keys' or passwd.|
+        |                                        | Matches? User identity is VERIFIED.       |
+        |                                        =============================================
+        |                                                      |
+        | <----------- 5. Access Granted (Shell) ------------- |
+        v                                                      v
+---
 SSH provides secure and encrypted communication between systems.
 
 When an SSH client connects to an SSH server, two important security checks take place:
