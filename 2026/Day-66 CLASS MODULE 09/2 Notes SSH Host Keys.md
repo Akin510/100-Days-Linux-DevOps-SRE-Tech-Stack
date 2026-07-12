@@ -51,8 +51,22 @@ In this lesson, you will learn:
         |                                                      |
         | <----------- 5. Access Granted (Shell) ------------- |
         v                                                      v
----
-SSH provides secure and encrypted communication between systems.
+```
+### Step-by-Step Breakdown
+
+* **Initiation:** The client requests a connection to the server on designated port (default 22).
+* **Security Check #1 (Server Verification):** 
+    * The server sends its **Host Key** to the client.
+    * The client looks up this key in its local `~/.ssh/known_hosts` file.
+    * *Result:* This ensures you are talking to the correct server and prevents Man-in-the-Middle attacks.
+* **Encryption Tunnel:** Before any sensitive login details are shared, both sides negotiate session keys to establish a secure, encrypted communication channel.
+* **Security Check #2 (User Verification):** 
+    * The client securely transmits user credentials (password or cryptographic signature from a local private key) through the encrypted tunnel.
+    * The server validates these credentials against its local files (like `/etc/shadow` or `~/.ssh/authorized_keys`).
+    * *Result:* This ensures the user is authorized to log in.
+* **Access:** The server drops the user into the terminal shell interface.
+
+## SSH provides secure and encrypted communication between systems.
 
 When an SSH client connects to an SSH server, two important security checks take place:
 
@@ -83,6 +97,38 @@ SSH Hot Keys
 
 A Host Key identifies an SSH server.
 
+---
+# Practical Lesson: Understanding SSH Host Verification & Trust
+
+Today we are going to look at how your Windows client securely connects to a remote Linux VM over our OpenVPN tunnel, where your configuration data is stored, and how to prevent security vulnerabilities during the very first connection.
+
+---
+
+## 1. Where is the `known_hosts` file on Windows?
+
+When you open the native Windows Command Prompt (`cmd`) and run `ssh root@192.168.1.11`, the OpenSSH client handles server validation by storing the host keys right in your personal user profile directory.
+
+Instead of the Linux-style forward slashes (`~/.ssh/known_hosts`), Windows utilizes backslashes:
+
+```text
+C:\Users\<Your-Username>\.ssh\known_hosts
+1. cd .ssh => this will get  you to ".ssh" directory
+2. Run => "dir" to view the files
+```
+Example output
+```shell
+ Directory of C:\Users\nsidd\.ssh
+
+07/10/2026  12:05 AM    <DIR>          .
+06/20/2026  02:30 AM    <DIR>          ..
+05/02/2025  10:11 PM               162 config
+10/30/2025  01:09 AM             3,389 id_rsa
+10/30/2025  01:09 AM               752 id_rsa.pub
+07/11/2026  07:34 PM            17,881 known_hosts
+07/10/2026  12:05 AM            16,946 known_hosts.old
+
+VIEW any file using "type known_hosts.old" 
+```
 ---
 
 # 1. What Is an SSH Host Key?
