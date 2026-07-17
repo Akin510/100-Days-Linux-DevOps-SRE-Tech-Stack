@@ -111,7 +111,7 @@ pwd
 Verify the home directory:
 
 ```bash
-echo "$HOME"
+echo $HOME
 ```
 
 ---
@@ -121,7 +121,7 @@ echo "$HOME"
 ## Step 1: Display the Login Shell
 
 ```bash
-echo "$SHELL"
+echo $SHELL
 ```
 
 Example output:
@@ -163,13 +163,13 @@ cd
 Create the scripts directory:
 
 ```bash
-mkdir -p "$HOME/scripts"
+mkdir -p scripts
 ```
 
 Enter it:
 
 ```bash
-cd "$HOME/scripts"
+cd scripts
 ```
 
 Verify:
@@ -186,7 +186,7 @@ ls -la
 Create the script:
 
 ```bash
-nano hello.sh
+vi hello.sh
 ```
 
 Enter:
@@ -228,7 +228,7 @@ sh hello.sh
 Edit the file:
 
 ```bash
-nano hello.sh
+vi hello.sh
 ```
 
 Change it to:
@@ -318,7 +318,7 @@ Hello, Friend!
 Edit the script:
 
 ```bash
-nano hello.sh
+vi hello.sh
 ```
 
 Use:
@@ -401,7 +401,7 @@ The dot (`.`) means the current directory.
 The absolute path also works:
 
 ```bash
-"$HOME/scripts/hello.sh"
+$HOME/scripts/hello.sh
 ```
 
 ---
