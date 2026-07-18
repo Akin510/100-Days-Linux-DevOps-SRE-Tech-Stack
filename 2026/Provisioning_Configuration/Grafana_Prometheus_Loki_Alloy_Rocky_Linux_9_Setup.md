@@ -351,13 +351,19 @@ UDP 1514
 It sends those messages to Loki.
 
 ```bash
-sudo tee /opt/observability/alloy/config.alloy > /dev/null <<'EOF'
+tee /opt/observability/alloy/config.alloy > /dev/null <<'EOF'
 logging {
   level  = "info"
   format = "logfmt"
 }
 
+// Define rules that convert Alloy's internal syslog labels
+// into permanent Loki labels.
 loki.relabel "syslog_labels" {
+  // Required because forward_to is mandatory for loki.relabel.
+  // This component is being used to export its rules.
+  forward_to = []
+
   rule {
     source_labels = ["__syslog_message_hostname"]
     target_label  = "host"
@@ -384,6 +390,7 @@ loki.relabel "syslog_labels" {
   }
 }
 
+// Receive remote Linux syslog messages over TCP and UDP.
 loki.source.syslog "remote_linux_logs" {
   listener {
     address       = "0.0.0.0:1514"
@@ -408,16 +415,21 @@ loki.source.syslog "remote_linux_logs" {
     }
   }
 
+  // Apply the rules before internal __syslog_* labels are removed.
   relabel_rules = loki.relabel.syslog_labels.rules
-  forward_to    = [loki.write.local_loki.receiver]
+
+  // Forward the resulting logs to Loki.
+  forward_to = [loki.write.local_loki.receiver]
 }
 
+// Send received logs to the Loki container.
 loki.write "local_loki" {
   endpoint {
     url = "http://loki:3100/loki/api/v1/push"
   }
 }
 
+// Enable Alloy live debugging in the Alloy web interface.
 livedebugging {
   enabled = true
 }
@@ -431,7 +443,7 @@ EOF
 This automatically adds Prometheus and Loki when Grafana starts.
 
 ```bash
-sudo tee \
+tee \
 /opt/observability/grafana/provisioning/datasources/datasources.yml \
 > /dev/null <<'EOF'
 apiVersion: 1
