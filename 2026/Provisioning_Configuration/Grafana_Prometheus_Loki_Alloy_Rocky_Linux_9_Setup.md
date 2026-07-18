@@ -636,7 +636,12 @@ Expected result:
 ```text
 Configuration loaded successfully
 ```
-
+```bash
+docker compose run --rm --no-deps \
+  alloy validate /etc/alloy/config.alloy \
+  && echo "ALLOY CONFIGURATION IS VALID" \
+  || echo "ALLOY CONFIGURATION FAILED"
+```
 ---
 
 ## 14. Pull and start the containers
