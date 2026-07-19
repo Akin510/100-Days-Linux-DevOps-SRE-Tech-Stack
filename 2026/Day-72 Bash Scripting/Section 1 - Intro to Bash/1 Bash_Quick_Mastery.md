@@ -743,22 +743,7 @@ system-info.sh
 | `echo "$PATH"` | Display the command search path |
 | `export PATH="$PATH:$HOME/scripts"` | Temporarily add the scripts directory |
 | `source ~/.bashrc` | Reload Bash configuration |
-| `command -v hello.sh` | Show the command Bash will execute |
-| `bash -x hello.sh` | Run a script in debugging mode |
-
----
-
-# 📖 Key Takeaways
-
-- A terminal is the interface where commands are entered.
-- A shell interprets and executes commands.
-- Bash is the most commonly used Linux shell.
-- A Bash script is a text file containing commands.
-- The Shebang selects the script interpreter.
-- Execute permission is required to run a script directly.
-- `./` explicitly references the current directory.
-- `PATH` contains directories where Bash searches for commands.
-- Adding `$HOME/scripts` to `PATH` allows scripts to run like normal commands.
+| `command -v hello.sh` | Show the command Bash will execute 
 - Comments improve readability and documentation.
 - Permanent Bash settings are commonly stored in `~/.bashrc`.
 
@@ -792,4 +777,19 @@ Add to PATH
      │
      ▼
 Use as a Normal Command
-```
+```|
+| `bash -x hello.sh` | Run a script in debugging mode |
+
+---
+
+# 📖 Key Takeaways
+
+- A terminal is the interface where commands are entered.
+- A shell interprets and executes commands.
+- Bash is the most commonly used Linux shell.
+- A Bash script is a text file containing commands.
+- The Shebang selects the script interpreter.
+- Execute permission is required to run a script directly.
+- `./` explicitly references the current directory.
+- `PATH` contains directories where Bash searches for commands.
+- Adding `$HOME/scripts` to `PATH` allows scripts to run like normal commands.
