@@ -1121,8 +1121,8 @@ ping -c 4 google.com
 
 If the gateway and `8.8.8.8` respond but `google.com` does not, the issue is most likely related to DNS configuration.
 ---
-## 23a. Configuring the New Linux VM
-# Prepare VM2 to Forward rsyslog Logs to the Monitoring Server
+# 23a. Configuring the New Linux VM
+## Prepare VM2 to Forward rsyslog Logs to the Monitoring Server
 
 ## Environment
 
