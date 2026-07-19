@@ -1009,7 +1009,7 @@ Rocky Linux normally uses rsyslog and systemd-journald for operating-system logg
 Start with rsyslog because it is normally already installed. We will select a new Virtual Machine (VM) whose logs we will send to Graphana.
 
 The following was added as a comment by Nadeem Siddiqi on 7/19/2026
-## Select or Create a New VM
+###  Select/Creating a New Linux VM
 # Configure a Static IP Address Using `nmcli`
 
 ## Network Configuration
@@ -1120,8 +1120,673 @@ ping -c 4 google.com
 ```
 
 If the gateway and `8.8.8.8` respond but `google.com` does not, the issue is most likely related to DNS configuration.
+---
+## 23a. Configuring the New Linux VM
+# Prepare VM2 to Forward rsyslog Logs to the Monitoring Server
 
-## 23. Ensure rsyslog is running
+## Environment
+
+This guide prepares a second Rocky Linux 9 VM to forward its operating-system logs to the monitoring server.
+
+```text
+Monitoring server: 192.168.1.176
+Syslog receiver:   Grafana Alloy
+Syslog port:       TCP 1514
+Log storage:       Loki
+Visualization:     Grafana
+```
+
+VM2 needs only:
+
+- Rocky Linux 9
+- rsyslog
+- Network connectivity to `192.168.1.176`
+- TCP access to port `1514`
+
+You do **not** need to install Grafana, Loki, Prometheus, or Alloy on VM2.
+
+```text
+VM2 rsyslog
+    │
+    │ TCP 1514
+    ▼
+192.168.1.176 Alloy
+    │
+    ▼
+Loki
+    │
+    ▼
+Grafana
+```
+
+Run the following commands on **VM2**, unless a step specifically says to run it on the monitoring server.
+
+---
+
+# Step 1: Identify VM2
+
+Log into VM2 and become root:
+
+```bash
+sudo -i
+```
+
+Check the operating system:
+
+```bash
+cat /etc/rocky-release
+```
+
+Check its current hostname and IP address:
+
+```bash
+hostnamectl
+ip -br address
+ip route
+```
+
+Give VM2 a recognizable hostname:
+
+```bash
+hostnamectl set-hostname rocky-client-01
+```
+
+Confirm:
+
+```bash
+hostname
+```
+
+Expected:
+
+```text
+rocky-client-01
+```
+
+The hostname is important because Loki should create a label similar to:
+
+```text
+host="rocky-client-01"
+```
+
+---
+
+# Step 2: Verify Network Connectivity
+
+From VM2:
+
+```bash
+ping -c 4 192.168.1.176
+```
+
+You should receive replies.
+
+If ping does not work, check:
+
+```bash
+ip route
+nmcli device status
+```
+
+---
+
+# Step 3: Check Time Synchronization
+
+Correct timestamps are important when searching logs in Grafana.
+
+Check VM2's time:
+
+```bash
+timedatectl
+```
+
+Make sure chrony is installed and running:
+
+```bash
+dnf install -y chrony
+systemctl enable --now chronyd
+```
+
+Verify:
+
+```bash
+chronyc tracking
+```
+
+The times on VM2 and `192.168.1.176` should be reasonably close.
+
+---
+
+# Step 4: Install rsyslog and Connectivity Tools
+
+On VM2:
+
+```bash
+dnf install -y rsyslog nmap-ncat
+```
+
+Enable and start rsyslog:
+
+```bash
+systemctl enable --now rsyslog
+```
+
+Check its status:
+
+```bash
+systemctl status rsyslog --no-pager
+```
+
+Expected:
+
+```text
+Active: active (running)
+```
+
+Verify the process:
+
+```bash
+ps -ef | grep '[r]syslog'
+```
+
+---
+
+# Step 5: Test TCP Port 1514
+
+From VM2:
+
+```bash
+nc -vz 192.168.1.176 1514
+```
+
+Expected:
+
+```text
+Ncat: Connected to 192.168.1.176:1514.
+```
+
+This confirms that:
+
+- VM2 can reach the monitoring server.
+- The firewall permits TCP port 1514.
+- Alloy or Docker is listening on port 1514.
+
+## If the connection fails
+
+Run these commands on the monitoring server, `192.168.1.176`:
+
+```bash
+cd /opt/observability
+sudo docker compose ps
+sudo ss -lntup | grep 1514
+sudo firewall-cmd --list-ports
+```
+
+You should see:
+
+```text
+1514/tcp
+1514/udp
+```
+
+Add TCP port 1514 if necessary:
+
+```bash
+sudo firewall-cmd --permanent --add-port=1514/tcp
+sudo firewall-cmd --reload
+```
+
+Return to VM2 and test again:
+
+```bash
+nc -vz 192.168.1.176 1514
+```
+
+> VM2 does not normally need an inbound firewall port opened. It makes an outbound connection to the monitoring server.
+
+---
+
+# Step 6: Check for Existing Forwarding Configurations
+
+Before creating the new file, check whether VM2 is already forwarding logs somewhere:
+
+```bash
+grep -RniE 'omfwd|@@|@192\.168|target=' \
+/etc/rsyslog.conf /etc/rsyslog.d/ 2>/dev/null
+```
+
+If no existing forwarding configuration appears, continue.
+
+If an older configuration points elsewhere, disable it to prevent duplicate forwarding.
+
+---
+
+# Step 7: Create the rsyslog Forwarding Configuration
+
+Create the configuration:
+
+```bash
+tee /etc/rsyslog.d/90-grafana-alloy.conf > /dev/null <<'EOF'
+# Forward all logs to Grafana Alloy on the monitoring server.
+# TCP is used because it is more reliable than UDP.
+
+action(
+    type="omfwd"
+    target="192.168.1.176"
+    port="1514"
+    protocol="tcp"
+    template="RSYSLOG_SyslogProtocol23Format"
+
+    action.resumeRetryCount="-1"
+
+    queue.type="linkedList"
+    queue.size="10000"
+)
+EOF
+```
+
+Display the file:
+
+```bash
+cat /etc/rsyslog.d/90-grafana-alloy.conf
+```
+
+| Setting | Meaning |
+|---|---|
+| `target` | Monitoring server IP |
+| `port` | Alloy syslog listening port |
+| `protocol="tcp"` | Reliable TCP transport |
+| `RSYSLOG_SyslogProtocol23Format` | Sends RFC 5424-formatted logs |
+| `resumeRetryCount="-1"` | Continue retrying if the server is unavailable |
+| `queue.type="linkedList"` | Queue messages instead of blocking local logging |
+| `queue.size="10000"` | Queue capacity |
+
+---
+
+# Step 8: Validate the rsyslog Configuration
+
+```bash
+rsyslogd -N1
+```
+
+A successful validation should end with:
+
+```text
+rsyslogd: End of config validation run. Bye.
+```
+
+Do not restart rsyslog until validation succeeds.
+
+---
+
+# Step 9: Restart rsyslog
+
+```bash
+systemctl restart rsyslog
+systemctl status rsyslog --no-pager
+```
+
+Check recent service messages:
+
+```bash
+journalctl -u rsyslog --since "5 minutes ago" --no-pager
+```
+
+Check for errors:
+
+```bash
+journalctl -u rsyslog -p err --since "10 minutes ago" --no-pager
+```
+
+---
+
+# Step 10: Generate the First Test Log
+
+```bash
+logger -p user.notice -t nit-test \
+"NIT rsyslog test from $(hostname) at $(date)"
+```
+
+Verify it locally:
+
+```bash
+journalctl -t nit-test -n 10 --no-pager
+```
+
+You may also find it in `/var/log/messages`:
+
+```bash
+grep "NIT rsyslog test" /var/log/messages
+```
+
+---
+
+# Step 11: Generate Additional Test Logs
+
+```bash
+logger -p user.info -t classroom \
+"NIT classroom information message from $(hostname)"
+
+logger -p user.warning -t classroom \
+"NIT classroom warning message from $(hostname)"
+
+logger -p user.err -t classroom \
+"NIT classroom error message from $(hostname)"
+
+logger -p authpriv.notice -t sshd \
+"NIT classroom simulated SSH log from $(hostname)"
+```
+
+Check them locally:
+
+```bash
+journalctl --since "5 minutes ago" | grep NIT
+```
+
+---
+
+# Step 12: Watch Traffic on VM2
+
+Install tcpdump:
+
+```bash
+dnf install -y tcpdump
+```
+
+In one VM2 terminal:
+
+```bash
+tcpdump -ni any host 192.168.1.176 and port 1514
+```
+
+From another VM2 terminal:
+
+```bash
+logger -t nit-test \
+"NIT tcpdump forwarding test from $(hostname)"
+```
+
+Press `Ctrl+C` to stop tcpdump.
+
+---
+
+# Step 13: Verify Traffic on the Monitoring Server
+
+On `192.168.1.176`:
+
+```bash
+sudo tcpdump -ni any port 1514
+```
+
+Then send another message from VM2:
+
+```bash
+logger -t nit-test \
+"NIT incoming traffic test from $(hostname)"
+```
+
+---
+
+# Step 14: Check the Alloy Container
+
+On `192.168.1.176`:
+
+```bash
+cd /opt/observability
+sudo docker compose ps
+sudo docker compose logs --tail=100 alloy
+```
+
+Follow Alloy logs live:
+
+```bash
+sudo docker compose logs -f alloy
+```
+
+Then send another message from VM2:
+
+```bash
+logger -t nit-test \
+"NIT Alloy live test from $(hostname)"
+```
+
+> Alloy may not print every individual message at the default `info` logging level. Network traffic and Grafana queries are better confirmation methods.
+
+---
+
+# View VM2 Logs in Grafana
+
+Open:
+
+```text
+http://192.168.1.176:3000
+```
+
+Go to:
+
+```text
+Explore → Loki
+```
+
+Set the time range to:
+
+```text
+Last 15 minutes
+```
+
+## Display all syslog messages
+
+```logql
+{job="syslog"}
+```
+
+## Find the VM2 test message
+
+```logql
+{job="syslog"} |= "NIT rsyslog test"
+```
+
+## Filter by VM2 hostname
+
+```logql
+{job="syslog", host="rocky-client-01"}
+```
+
+## Filter by source IP
+
+```logql
+{job="syslog", source_ip="VM2_IP_ADDRESS"}
+```
+
+Example:
+
+```logql
+{job="syslog", source_ip="192.168.1.184"}
+```
+
+Find VM2's IP:
+
+```bash
+hostname -I
+```
+
+## Find the simulated SSH message
+
+```logql
+{job="syslog"} |= "NIT classroom simulated SSH log"
+```
+
+## Find real SSH failures
+
+```logql
+{job="syslog"} |= "Failed password"
+```
+
+## Filter by application
+
+```logql
+{job="syslog", app="classroom"}
+```
+
+```logql
+{job="syslog", app="nit-test"}
+```
+
+## Filter warning logs
+
+```logql
+{job="syslog", severity="warning"}
+```
+
+## Count logs per host
+
+```logql
+sum by (host) (
+  count_over_time({job="syslog"}[5m])
+)
+```
+
+Count only VM2:
+
+```logql
+sum(
+  count_over_time(
+    {job="syslog", host="rocky-client-01"}[5m]
+  )
+)
+```
+
+---
+
+# Complete VM2 Test Block
+
+```bash
+logger -p user.notice -t nit-test \
+"NIT rsyslog test from $(hostname) at $(date)"
+
+logger -p user.info -t classroom \
+"NIT classroom information message from $(hostname)"
+
+logger -p user.warning -t classroom \
+"NIT classroom warning message from $(hostname)"
+
+logger -p user.err -t classroom \
+"NIT classroom error message from $(hostname)"
+
+logger -p authpriv.notice -t sshd \
+"NIT classroom simulated SSH log from $(hostname)"
+```
+
+Verify locally:
+
+```bash
+journalctl --since "5 minutes ago" | grep NIT
+```
+
+Then query in Grafana:
+
+```logql
+{job="syslog"} |= "NIT"
+```
+
+---
+
+# Troubleshooting
+
+## `nc` reports connection refused
+
+On `192.168.1.176`:
+
+```bash
+cd /opt/observability
+sudo docker compose ps alloy
+sudo ss -lntup | grep 1514
+sudo firewall-cmd --list-ports
+sudo docker compose restart alloy
+sudo docker compose logs --tail=100 alloy
+```
+
+## rsyslog validation fails
+
+```bash
+cat -n /etc/rsyslog.d/90-grafana-alloy.conf
+rsyslogd -N1
+```
+
+## Test exists locally but not in Grafana
+
+```bash
+journalctl -t nit-test -n 20 --no-pager
+nc -vz 192.168.1.176 1514
+tcpdump -ni any host 192.168.1.176 and port 1514
+systemctl restart rsyslog
+```
+
+Generate a unique test:
+
+```bash
+logger -t nit-test \
+"UNIQUE-VM2-TEST-$(date +%s)"
+```
+
+Search in Grafana:
+
+```logql
+{job="syslog"} |= "UNIQUE-VM2-TEST"
+```
+
+## Host label is empty
+
+```bash
+hostname
+hostnamectl --static
+systemctl restart rsyslog
+```
+
+Then send:
+
+```bash
+logger -t nit-test \
+"NIT hostname label test from $(hostname)"
+```
+
+---
+
+# Final Validation Checklist
+
+On VM2:
+
+```bash
+hostname
+systemctl is-active rsyslog
+rsyslogd -N1
+nc -vz 192.168.1.176 1514
+```
+
+Generate the final test:
+
+```bash
+logger -p user.notice -t nit-test \
+"NIT FINAL VM2 TEST from $(hostname) at $(date)"
+```
+
+In Grafana:
+
+```logql
+{job="syslog"} |= "NIT FINAL VM2 TEST"
+```
+
+Once this message appears, VM2 is successfully forwarding logs through:
+
+```text
+VM2 rsyslog
+   → 192.168.1.176:1514
+   → Grafana Alloy
+   → Loki
+   → Grafana
+```
+---
+## 23b. Ensure rsyslog is running
 
 On the client:
 
