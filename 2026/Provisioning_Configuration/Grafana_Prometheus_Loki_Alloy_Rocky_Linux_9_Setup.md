@@ -1006,7 +1006,120 @@ State: UP
 
 Rocky Linux normally uses rsyslog and systemd-journald for operating-system logging.
 
-Start with rsyslog because it is normally already installed.
+Start with rsyslog because it is normally already installed. We will select a new Virtual Machine (VM) whose logs we will send to Graphana.
+
+The following was added as a comment by Nadeem Siddiqi on 7/19/2026
+## Select or Create a New VM
+# Configure a Static IP Address Using `nmcli`
+
+## Network Configuration
+
+| Setting | Value |
+|---|---|
+| Network | `192.168.1.0/24` |
+| Static IP address | `192.168.1.215/24` |
+| Gateway | `192.168.1.1` |
+| Network interface | `enX0` |
+| DNS servers | `192.168.1.1` and `8.8.8.8` |
+
+## 1. Check Whether the IP Address Is Available
+
+Before assigning the IP address, check whether `192.168.1.215` is already being used by another device:
+
+```bash
+arping -D -I enX0 192.168.1.215 -c 5
+```
+
+The following result normally indicates that the IP address is available:
+
+```text
+Received 0 response(s)
+```
+
+If responses are received, another device may already be using the IP address. Do not assign it until the conflict has been resolved.
+
+## 2. Configure the Static IP Address
+
+Run the following command:
+
+```bash
+nmcli connection modify enX0 \
+  ipv4.method manual \
+  ipv4.addresses 192.168.1.215/24 \
+  ipv4.gateway 192.168.1.1 \
+  ipv4.dns "192.168.1.1 8.8.8.8"
+```
+
+## 3. Apply the Configuration
+
+Restart the NetworkManager connection:
+
+```bash
+nmcli connection down enX0
+nmcli connection up enX0
+```
+
+> **Warning:** If you are connected to the server through SSH, your SSH session may disconnect when the network connection is restarted.
+
+Reconnect using the new static IP address:
+
+```bash
+ssh root@192.168.1.215
+```
+
+## 4. Verify the IP Address
+
+Check the IPv4 address assigned to `enX0`:
+
+```bash
+ip -4 address show enX0
+```
+
+Check the routing table:
+
+```bash
+ip route
+```
+
+Check the IP address, gateway, and DNS settings:
+
+```bash
+nmcli device show enX0 | grep -E 'IP4.ADDRESS|IP4.GATEWAY|IP4.DNS'
+```
+
+The expected default route should look similar to:
+
+```text
+default via 192.168.1.1 dev enX0
+```
+
+The interface should show the following IP address:
+
+```text
+192.168.1.215/24
+```
+
+## 5. Test Network Connectivity
+
+Test connectivity to the gateway:
+
+```bash
+ping -c 4 192.168.1.1
+```
+
+Test internet connectivity using an IP address:
+
+```bash
+ping -c 4 8.8.8.8
+```
+
+Test DNS name resolution:
+
+```bash
+ping -c 4 google.com
+```
+
+If the gateway and `8.8.8.8` respond but `google.com` does not, the issue is most likely related to DNS configuration.
 
 ## 23. Ensure rsyslog is running
 
