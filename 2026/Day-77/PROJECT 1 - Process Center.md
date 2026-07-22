@@ -1,4 +1,4 @@
-# Linux Process Management Practical Project — Root Account Edition
+# NEXUS VENTURES: Linux Process Management Project — Root Account Edition
 
 ## Project Title
 
