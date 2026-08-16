@@ -4,17 +4,23 @@
 > **Account:** `root`  
 > **Standard:** Keep SELinux enforcing and firewalld enabled. Persistent work must survive reboot.
 
-## 1. Exam Task Converted to a Project
+## 1. RHCSA Exam Requirements Converted to a Real Project
 
-Configure the hostname, static IPv4 address, gateway, and DNS server. The sample paper uses `system1.eight.example.com`, `192.168.55.150/24`, gateway `192.168.55.1`, and DNS `8.8.8.8`.
+What is expected on RHCSA Exam Paper:
+- Configure the hostname
+- Make the Server IP static - IPv4 address
+- Find the gateway (router) IP 
+- server. 
 
-## 2. Business Scenario
+The sample paper uses `system1.eight.example.com`, `192.168.55.150/24`, gateway `192.168.55.1`, and DNS `8.8.8.8`.
 
-NexusVentures is commissioning a Linux server. Stable network identity is required before repositories and services can be deployed. Because all students share a Xen Orchestra network, every VM must receive a **unique instructor-assigned IP address**.
+## 2. Data Center Scenario
+
+NexusVentures is commissioning a new Linux server that requires a Stable network identity. This is required before repositories and services can be deployed. 
 
 ## 3. Learning Outcomes
 
-Students will plan the change, record the original state, implement the configuration, explain each command, validate the result, test reboot persistence where applicable, and document rollback.
+As a Nexusventure contractor you will plan the change, record the original state, implement the configuration, explain each command, validate the result, test reboot persistence where applicable, and document rollback.
 
 ## 4. Safety and Prerequisites
 
@@ -22,7 +28,7 @@ Students will plan the change, record the original state, implement the configur
 - Confirm the account with `whoami`; expected output is `root`.
 - Create a Xen Orchestra snapshot before disruptive work.
 - Save pre-change evidence under `/root/nexusventures-project01/`.
-- Use only a unique IP allocated by the instructor.
+- Use only a unique IP allocated to you.
 - Never perform the activation step without console access.
 
 ## 5. Step-by-Step Solution

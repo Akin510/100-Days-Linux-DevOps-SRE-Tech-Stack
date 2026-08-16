@@ -807,6 +807,19 @@ curl.exe
 so Windows uses the actual curl executable.
 
 You should see the HTML returned by Apache.
+Run:
+
+```powershell
+curl http://192.168.1.50
+```
+
+or:
+
+```powershell
+Invoke-WebRequest http://192.168.1.50
+```
+
+The response should contain your web page.
 
 ---
 
