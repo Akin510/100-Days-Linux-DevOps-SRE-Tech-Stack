@@ -201,7 +201,7 @@ Whether they are additional repositories depends on what is already configured:
 For the exam, a safe way to distinguish the supplied sources is to name their IDs [exam-baseos] and [exam-appstream]. The IDs can be your own names; the baseurl values must match the addresses in the question exactly.
 ---
 
-# REDHAT EXAM QUESTION
+# REDHAT EXAM QUESTION #2
 Configure the repositories which are available on the repo server at:
 http://repo.eight.example.com/BaseOS
 http://repo.eight.example.com/AppStream
@@ -212,6 +212,12 @@ http://repo.eight.example.com/AppStream
 ## Solution:
 ### STEP-1
 The easiest thing to do is to **create a repository file**, for example, **eight.repo**:
+**On your Rocky VM, [baseos] is already used in rocky.repo. Do not use [baseos] again in eight.repo: repository IDs must be unique across all .repo files. Changing only the capitalization to [baseOS] may give it a distinct ID, but it is easy to confuse with the original.**
+For the exam you need only
+- name=
+- baseurl=
+- enabled=1
+- gpgcheck=0
 
 
 1. Create a file that tells DNF the two addresses:
@@ -220,122 +226,60 @@ vi /etc/yum.repos.d/eight.repo
 ```
 Press i to enter insert mode, then type:
 ```bash
-[baseos]
-name=BaseOS
+[eight-baseos]
+name=EightBaseOS
 baseurl=http://repo.eight.example.com/BaseOS
 enabled=1
 gpgcheck=0
 
-[appstream]
-name=AppStream
+[eight-appstream]
+name=EightAppStream
 baseurl=http://repo.eight.example.com/AppStream
 enabled=1
 gpgcheck=0
 ```
-The file `/etc/yum.repos.d/rocky.repo` tells DNF where to find Rocky Linux software. This handout focuses on the two enabled repositories, **BaseOS** and **AppStream**.
 
-**Teaching analogy:** The repository holds the software packages. The `.repo` file holds the directions to that repository.
+| Line | Purpose|
+|---|---|
+| `[baseos]` | Give this warehouse a short ID. |
+| `name=BaseOS` | Give it a readable name. |
+| `baseurl=.../BaseOS` | Here is its address. |
+| `enabled=1` | Let DNF use it. |
+| `gpgcheck=0` | No signing key was supplied in this question. |
 
-### First, the lines beginning with `#`
 
-```ini
-# rocky.repo
-# The mirrorlist system uses ...
+### STEP-2 - Testing our new Repositories
+The file `/etc/yum.repos.d/rocky.repo` as well as `/etc/yum.repos.d/eight.repo` tells DNF where to find Rocky Linux software. 
+Both are enabled, so DNF can use both when resolving an installation.
+- Your VM currently says, in effect: **“Ask Rocky’s mirror service where to get BaseOS and AppStream.”**
+- The exam question says: **“Configure DNF to get them from these exact addresses on `repo.eight.example.com`.”** That is why the exam solution uses `baseurl=`: the question provides **direct repository addresses**, so there is no mirror list to ask.
+```bash
+[root@nitacademy yum.repos.d]# dnf repolist
+repo id                                                repo name
+appstream                                              Rocky Linux 9 - AppStream
+baseos                                                 Rocky Linux 9 - BaseOS
+docker-ce-stable                                       Docker CE Stable - x86_64
+eight-appstream                                        EightAppstream
+eight-baseos                                           EightBaseos
+extras                                                 Rocky Linux 9 - Extras
 ```
-
-A `#` makes a line a **comment**. DNF ignores it. The opening comments explain why Rocky normally uses a mirror list: it can direct your VM to an available Rocky download server near you.
-
-### The enabled BaseOS section
-
-```ini
-[baseos]
-name=Rocky Linux $releasever - BaseOS
-mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=BaseOS-$releasever$rltype
-#baseurl=http://dl.rockylinux.org/$contentdir/$releasever/BaseOS/$basearch/os/
-gpgcheck=1
-enabled=1
-countme=1
-metadata_expire=6h
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9
+Let us also Check if New respositories are **enabled**
+```bash
+[root@nitacademy yum.repos.d]# dnf repolist --all
+eight-appstream              EightAppstream                                                                   enabled
+eight-baseos                 EightBaseos                                                                      enabled
 ```
-### The enabled AppStream section
-
-```ini
-[appstream]
-name=Rocky Linux $releasever - AppStream
-mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=AppStream-$releasever$rltype
-#baseurl=http://dl.rockylinux.org/$contentdir/$releasever/AppStream/$basearch/os/
-gpgcheck=1
-enabled=1
-countme=1
-metadata_expire=6h
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9
+Finally run:
+```bash
+dnf makecache
 ```
+- Note: dnf makecache downloads and saves the package catalogs (metadata) from enabled repositories. The catalogs tell DNF which packages and versions are available and what dependencies they need. It does not install or update packages
 
-It uses **the same settings in the same way**. The key differences are its ID, `[appstream]`, and its URLs, which request **AppStream** rather than **BaseOS** packages. Both are enabled, so DNF can use both when resolving an installation.
-
-### How this relates to your exam question
-
-Your VM currently says, in effect: **“Ask Rocky’s mirror service where to get BaseOS and AppStream.”**
-
-The exam question says: **“Configure DNF to get them from these exact addresses on `repo.eight.example.com`.”** That is why the exam solution uses `baseurl=`: the question provides **direct repository addresses**, so there is no mirror list to ask.
-
-**Note about the other sections:** `baseos-debuginfo`, `baseos-source`, `appstream-debuginfo`, and `appstream-source` are separate repositories for debugging information or source code. Each has `enabled=0`, so DNF does not normally use them.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## 1. Exam Task Converted to a Project
-
+## Project/Exam Summary
+## 1. Exam Task / Project
 Configure BaseOS and AppStream repositories. The sample URLs are `http://repo.eight.example.com/BaseOS` and `http://repo.eight.example.com/AppStream`.
 
 ## 2. Business Scenario
-
 NexusVentures installs software only from approved repositories. Students will define repository metadata, verify package availability, and install Apache for the next project.
 
 ## 3. Learning Outcomes
