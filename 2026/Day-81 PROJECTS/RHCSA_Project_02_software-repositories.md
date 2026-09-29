@@ -40,9 +40,9 @@ appstream-source             Rocky Linux 9 - AppStream - Source                 
 baseos                       Rocky Linux 9 - BaseOS                                                           enabled
 ```
 
-## 3  Under 'repo name' find 'enabled'
-> Answer: at the configuration files:
-The files in /etc/yum.repos.d/ will tell you which server addresses those entries use.
+## STEP-4  How do we know which server addresses those enabled repositories use.
+> Answer: In the configuration files:
+The files in /etc/yum.repos.d/ 
 ```bash
 [root@nitacademy ~]# cd /etc/yum.repos.d/
 [root@nitacademy yum.repos.d]# pwd
@@ -57,7 +57,7 @@ total 28
 -rw-r--r--. 1 root root 1425 May  8 12:31 rocky-security.repo
 ```
 
-### Now, look into /etc/yum.repos.d/rocky.repo, a configuration file that tells DNF where to find Rocky Linux software. It contains several repository sections
+### /etc/yum.repos.d/rocky.repo is a configuration file that tells DNF where to find Rocky Linux software. It contains several repository sections
 ```shell
 [root@nitacademy yum.repos.d]# cat rocky.repo
 # rocky.repo
@@ -126,16 +126,21 @@ enabled=0
 metadata_expire=6h
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9
 ```
-
-### a "mirror list" and "baseurl" ?
-```shell
-mirrorlist → Rocky's directory of possible servers → a Rocky mirror → packages
-baseurl    → repo.eight.example.com/BaseOS            → packages
-```
+### Configuration file Explained
+We need to understand the following Terminologies:
+1. mirrorlist
+2. baseurl
+3. gpgcheck
+4. enabled
+5. gpgkey
 - Mirror list: gives DNF addresses of available download servers.
 - Mirror servers: hold the BaseOS and AppStream package catalogs and RPM files.
 - DNF: compares those catalogs with what your VM has installed, then downloads and installs needed updates.
 
+What is the difference
+mirrorlist → Rocky's directory of possible servers → a Rocky mirror → packages
+baseurl    → repo.eight.example.com/BaseOS            → packages
+```
 The mirror list and catalog information may be cached, so DNF does not have to fetch them from scratch on every run.
 It means Rocky Linux helps your VM to choose a suitable download server, called a mirror.
 For your Houston VM, the process looks like this:
