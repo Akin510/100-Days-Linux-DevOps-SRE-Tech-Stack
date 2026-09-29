@@ -40,7 +40,7 @@ appstream-source             Rocky Linux 9 - AppStream - Source                 
 baseos                       Rocky Linux 9 - BaseOS                                                           enabled
 ```
 
-## STEP-4  How do we know which server addresses those enabled repositories use.
+## STEP-3  How do we know which server addresses those enabled repositories use.
 > Answer: In the configuration files:
 The files in /etc/yum.repos.d/ 
 ```bash
@@ -57,7 +57,8 @@ total 28
 -rw-r--r--. 1 root root 1425 May  8 12:31 rocky-security.repo
 ```
 
-### /etc/yum.repos.d/rocky.repo is a configuration file that tells DNF where to find Rocky Linux software. It contains several repository sections
+> Remember any new file created must always end in .repo 
+> Configuration file => /etc/yum.repos.d/rocky.repo tells DNF where to find software.
 ```shell
 [root@nitacademy yum.repos.d]# cat rocky.repo
 # rocky.repo
@@ -136,16 +137,15 @@ We need to understand the following Terminologies:
    - gpgcheck=0 means check is off (IF no key. In the exam this select gpgcheck=0)
 4. gpgkey
    - This tells DNF to find Rocky's Public Key for that verification
-   - file:// means the key file is in the localhost.
+   - file:// means the key file is in the localhost. /etc/pki/rpm-gpg
 5. enabled: Use or not to use this repository
    - enabled=0
    - enabled=1
-
-- Mirror list: gives DNF addresses of available download servers.
-
+```shell
+Note:
 - DNF: compares those catalogs with what your VM has installed, then downloads and installs needed updates.
-
-> Important Note: An exam question not mentioning a key does not by itself prove that gpgcheck=0 is required. A suitable key might already be installed. In a practice lab, gpgcheck=0 is commonly used to keep the exercise focused on configuring the two URLs. For a real repository, keep signature checking on and configure the correct key whenever signed packages and that key are available.
+- Important Note: An exam question not mentioning a key does not by itself prove that gpgcheck=0 is required. A suitable key might already be  installed. In a practice lab, gpgcheck=0 is commonly used to keep the exercise focused on configuring the two URLs. For a real repository, keep signature checking on and configure the correct key whenever signed packages and that key are available.
+```
 
 | Line | Summary Descriptions|
 |---|---|
@@ -159,25 +159,17 @@ We need to understand the following Terminologies:
 | `metadata_expire=6h` | After six hours, DNF checks whether its cached **package catalog** needs updating. It does not mean installed packages expire after six hours. |
 | `gpgkey=file:///...` | The location of Rocky’s public signing key **on your VM**. DNF uses it for the signature check. `file://` means a local file, not a web address. |
 
-Reference: [DNF configuration reference](https://dnf.readthedocs.io/en/latest/conf_ref.html).
-
-In the mirror URL, `$basearch` means your system’s architecture, such as `x86_64`; `$releasever` identifies the release. `$rltype` is a Rocky specific value used when forming the requested repository name. **DNF substitutes these values** before contacting the mirror service—you do not type replacements into this file yourself.
-
-The mirror list and catalog information may be cached, so DNF does not have to fetch them from scratch on every run.
-It means Rocky Linux helps your VM to choose a suitable download server, called a mirror.
-For your Houston VM, the process looks like this:
-1. Your VM asks Rocky’s mirror list service for BaseOS or AppStream download locations.
-2. The service sees the public IP address the request came from and uses it to estimate your location. If your VM is behind a router, this is usually the router’s public IP, not the VM’s 192.168.1.x address.
-3. It checks which mirrors have current, synchronized packages.
-4. It returns suitable mirrors, preferably ones geographically near you. DNF then downloads from a mirror on that list.
-“You should use this for Rocky updates” means: leave the active mirrorlist= setting in place for normal use. If you intentionally choose a specific server—such as your organization’s own package mirror—you can configure a direct baseurl= instead.
-Classroom analogy: The mirror list is a dispatcher. It finds an up-to-date warehouse near you; the mirror is the warehouse that actually supplies the packages.
+```shell
+NOTES:
+- Reference: [DNF configuration reference](https://dnf.readthedocs.io/en/latest/conf_ref.html).
+- In the mirror URL, `$basearch` means your system’s architecture, such as `x86_64`; `$releasever` identifies the release. `$rltype` is a Rocky specific value used when forming the requested repository name. **DNF substitutes these values** before contacting the mirror service—you do not type replacements into this file yourself.
+```
+> Flow Diagram 1
 
 ![alt text](<mermaid-diagram (1).png>)
 
-> BaseOS and AppStream are enabled. Their mirrorlist= settings tell DNF where to find current package servers. dnf update checks those repositories for newer versions and, if available, downloads and installs them
 
-> Here is the dnf update flow:
+> Flow Diagram 2
 
 ---
 ![alt text](image-1.png)
