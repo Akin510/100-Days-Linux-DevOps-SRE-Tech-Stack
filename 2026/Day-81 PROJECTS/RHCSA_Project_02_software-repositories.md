@@ -206,7 +206,8 @@ Configure the repositories which are available on the repo server at:
 http://repo.eight.example.com/BaseOS
 http://repo.eight.example.com/AppStream
 
-- The exam task is asking you to configure two DNF repositories using the exact URLs shown.
+- The exam task is asking you to create a single .repo file and add two configurations to that file
+ using the exact URLs shown.
 - This has to be done on the exam VM. 
 
 ## Solution:
