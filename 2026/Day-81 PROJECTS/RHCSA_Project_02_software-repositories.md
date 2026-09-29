@@ -39,11 +39,6 @@ On your **Rocky Linux 9** VM, BaseOS and AppStream are software repositories: co
 
 Both are normal parts of Rocky Linux. When you run `dnf install`, DNF checks the enabled repositories and downloads the requested package and its required dependencies.
 
-To see the enabled repositories on your VM:
-
-```bash
-dnf repolist
-
 > Simplified Flow Diagram
 ![alt text](<mermaid-diagram (1).png>)
 
