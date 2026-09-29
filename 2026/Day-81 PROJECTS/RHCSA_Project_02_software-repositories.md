@@ -13,12 +13,39 @@ http://repo.eight.example.com/AppStream
 For the exam/real scenario, the task is to configure access to the specific exam server URLs. On your own VM, check to see if you already have working Rocky repositories, so leave them in place. If you practice adding the exam entries, give them distinct IDs such as [exam-baseos] and [exam-appstream]. The repo.eight.example.com address is intended for the exam network and may not work from your home lab.
 
 ## INTRODUCTION
-Let us first understand this subject matter as a system admin:
+This is a simple problem to solve if you understand what is going on!
+Overview Diagram
+![alt text](image-5.png)
+- Orange path: baseurl= sends DNF directly to your lab server, repo.eight.example.com.
+- Teal path: mirrorlist= contacts mirrors.rockylinux.org for server addresses; DNF then downloads packages from an online mirror.
+The two mirror servers shown are examples. The mirror list service is the directory, while those servers hold the BaseOS and AppStream packages.
 
+### What is contained in BaseOS and AppStream Repositories?
 ![Overview](image.png)
-1. The repo server holds the packages;
-2. ".repo" file is the address book; 
-3. DNF uses ".repo" address book.
+When we type "dnf install httpd"
+1. DNF goes to the configuration file(s), for example, rocky.repo [address book]
+2. This points to either mirrolist or baseurl servers holding the packages 
+
+## Scope of Work
+# BaseOS and AppStream in Rocky Linux 9
+[Official Red Hat documentation: Repositories in RHEL 9](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/considerations_in_adopting_rhel_9/ref_repositories_considerations-in-adopting-rhel-9)
+
+On your **Rocky Linux 9** VM, BaseOS and AppStream are software repositories: collections of packages that `dnf` can download and update.
+
+| Repository | What it provides | Think of it as |
+|---|---|---|
+| **BaseOS** | Core operating system components, such as the kernel and essential system tools | The foundation of the house |
+| **AppStream** | Additional applications, programming languages, runtimes, and databases | The tools and services you put in the house |
+
+Both are normal parts of Rocky Linux. When you run `dnf install`, DNF checks the enabled repositories and downloads the requested package and its required dependencies.
+
+To see the enabled repositories on your VM:
+
+```bash
+dnf repolist
+
+> Simplified Flow Diagram
+![alt text](<mermaid-diagram (1).png>)
 
 ## STEP-1: How do we find the list of repositories (repo) in our linux VM (Virtual Machine)?
 ```bash
@@ -40,8 +67,8 @@ appstream-source             Rocky Linux 9 - AppStream - Source                 
 baseos                       Rocky Linux 9 - BaseOS                                                           enabled
 ```
 
-## STEP-3  How do we know which server addresses those enabled repositories use.
-> Answer: In the configuration files:
+## STEP-3  Configuration file - we will know which server addresses those enabled repositories use.
+
 The files in /etc/yum.repos.d/ 
 ```bash
 [root@nitacademy ~]# cd /etc/yum.repos.d/
@@ -159,27 +186,12 @@ Note:
 | `metadata_expire=6h` | After six hours, DNF checks whether its cached **package catalog** needs updating. It does not mean installed packages expire after six hours. |
 | `gpgkey=file:///...` | The location of Rocky’s public signing key **on your VM**. DNF uses it for the signature check. `file://` means a local file, not a web address. |
 
+
 ```shell
 NOTES:
 - Reference: [DNF configuration reference](https://dnf.readthedocs.io/en/latest/conf_ref.html).
 - In the mirror URL, `$basearch` means your system’s architecture, such as `x86_64`; `$releasever` identifies the release. `$rltype` is a Rocky specific value used when forming the requested repository name. **DNF substitutes these values** before contacting the mirror service—you do not type replacements into this file yourself.
 ```
-> Flow Diagram 1
-
-![alt text](<mermaid-diagram (1).png>)
-
-
-> Flow Diagram 2
-
----
-![alt text](image-1.png)
-
-
-
-Your check worked. On your Rocky Linux VM, both repositories already exist and are enabled:
-Repo ID	Status	Current name
-baseos	Enabled	Rocky Linux 9 - BaseOS
-appstream	Enabled	Rocky Linux 9 - AppStream
 
 Whether they are additional repositories depends on what is already configured:
 - If your VM has no working BaseOS and AppStream entries, this file supplies them.
@@ -188,23 +200,7 @@ For the exam, a safe way to distinguish the supplied sources is to name their ID
 
 
 
-# BaseOS and AppStream in Rocky Linux 9
 
-[Official Red Hat documentation: Repositories in RHEL 9](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/considerations_in_adopting_rhel_9/ref_repositories_considerations-in-adopting-rhel-9)
-
-On your **Rocky Linux 9** VM, BaseOS and AppStream are software repositories: collections of packages that `dnf` can download and update.
-
-| Repository | What it provides | Think of it as |
-|---|---|---|
-| **BaseOS** | Core operating system components, such as the kernel and essential system tools | The foundation of the house |
-| **AppStream** | Additional applications, programming languages, runtimes, and databases | The tools and services you put in the house |
-
-Both are normal parts of Rocky Linux. When you run `dnf install`, DNF checks the enabled repositories and downloads the requested package and its required dependencies.
-
-To see the enabled repositories on your VM:
-
-```bash
-dnf repolist
 ```
 ## REDHAT EXAM QUESTION
 Configure the repositories which are available on the repo server at:
