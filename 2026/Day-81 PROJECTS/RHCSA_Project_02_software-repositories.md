@@ -21,7 +21,7 @@ Overview Diagram
 The two mirror servers shown are examples. The mirror list service is the directory, while those servers hold the BaseOS and AppStream packages.
 
 ### What is contained in BaseOS and AppStream Repositories?
-![Overview](image.png)
+![alt text](image-6.png)
 When we type "dnf install httpd"
 1. DNF goes to the configuration file(s), for example, rocky.repo [address book]
 2. This points to either mirrolist or baseurl servers holding the packages 
@@ -31,6 +31,13 @@ When we type "dnf install httpd"
 [Official Red Hat documentation: Repositories in RHEL 9](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/considerations_in_adopting_rhel_9/ref_repositories_considerations-in-adopting-rhel-9)
 
 On your **Rocky Linux 9** VM, BaseOS and AppStream are software repositories: collections of packages that `dnf` can download and update.
+To see which repository offers a particular package:
+```bash
+dnf info bash
+dnf info python3
+```
+
+In short: BaseOS runs the system; AppStream supplies much of the software you run on it.
 
 | Repository | What it provides | Think of it as |
 |---|---|---|
@@ -192,20 +199,21 @@ Whether they are additional repositories depends on what is already configured:
 - If your VM has no working BaseOS and AppStream entries, this file supplies them.
 - If it already has entries for them, you are pointing DNF to another source for the same kinds of packages. You should avoid reusing the same repository IDs ([baseos] and [appstream]) in two files.
 For the exam, a safe way to distinguish the supplied sources is to name their IDs [exam-baseos] and [exam-appstream]. The IDs can be your own names; the baseurl values must match the addresses in the question exactly.
+---
 
-
-
-
-```
-## REDHAT EXAM QUESTION
+# REDHAT EXAM QUESTION
 Configure the repositories which are available on the repo server at:
 http://repo.eight.example.com/BaseOS
 http://repo.eight.example.com/AppStream
 
-## Let us understand the Question
-The exam task asks you to configure two DNF repositories using the exact URLs shown. 
+- The exam task is asking you to configure two DNF repositories using the exact URLs shown.
+- This has to be done on the exam VM. 
 
-## What you do on the exam VM
+## Solution:
+### STEP-1
+The easiest thing to do is to **create a repository file**, for example, **eight.repo**:
+
+
 1. Create a file that tells DNF the two addresses:
 ```bash
 vi /etc/yum.repos.d/eight.repo
@@ -250,9 +258,6 @@ countme=1
 metadata_expire=6h
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9
 ```
-
-
-
 ### The enabled AppStream section
 
 ```ini
