@@ -253,6 +253,11 @@ The file `/etc/yum.repos.d/rocky.repo` as well as `/etc/yum.repos.d/eight.repo` 
 Both are enabled, so DNF can use both when resolving an installation.
 - Your VM currently says, in effect: **“Ask Rocky’s mirror service where to get BaseOS and AppStream.”**
 - The exam question says: **“Configure DNF to get them from these exact addresses on `repo.eight.example.com`.”** That is why the exam solution uses `baseurl=`: the question provides **direct repository addresses**, so there is no mirror list to ask.
+Run:
+```bash
+dnf clean all
+```
+Then run:
 ```bash
 [root@nitacademy yum.repos.d]# dnf repolist
 repo id                                                repo name
@@ -264,6 +269,7 @@ eight-baseos                                           EightBaseos
 extras                                                 Rocky Linux 9 - Extras
 ```
 Let us also Check if New respositories are **enabled**
+Run:
 ```bash
 [root@nitacademy yum.repos.d]# dnf repolist --all
 eight-appstream              EightAppstream                                                                   enabled
@@ -275,42 +281,105 @@ dnf makecache
 ```
 - Note: dnf makecache downloads and saves the package catalogs (metadata) from enabled repositories. The catalogs tell DNF which packages and versions are available and what dependencies they need. It does not install or update packages
 
-## Project/Exam Summary
-## 1. Exam Task / Project
-Configure BaseOS and AppStream repositories. The sample URLs are `http://repo.eight.example.com/BaseOS` and `http://repo.eight.example.com/AppStream`.
+> If both repositories appear and dnf makecache succeeds, your VM can reach the two software warehouses. The exam server address works inside the exam environment; you would not expect that example address to work on your home or any other evironment running Rocky Linux VM.
 
-## 2. Business Scenario
-NexusVentures installs software only from approved repositories. Students will define repository metadata, verify package availability, and install Apache for the next project.
+#### DNF Cache Commands
 
-## 3. Learning Outcomes
+Think of the cache as DNF’s saved copy of a store catalog.
 
-Students will plan the change, record the original state, implement the configuration, explain each command, validate the result, test reboot persistence where applicable, and document rollback.
+| Command | What it does |
+| --- | --- |
+| `dnf clean all` | Throws away saved repository catalogs and cached downloads. |
+| `dnf makecache` | Fetches fresh repository catalogs from the enabled repositories. |
+| `dnf install httpd` | Finds and installs `httpd` and its needed dependencies. |
 
-## 4. Safety and Prerequisites
-
-- Confirm the assigned VM with `hostnamectl` and `ip -brief address`.
-- Confirm the account with `whoami`; expected output is `root`.
-- Create a Xen Orchestra snapshot before disruptive work.
-- Save pre-change evidence under `/root/nexusventures-project02/`.
-
-
-## 5. Step-by-Step Solution
-
-### Step 1: Obtain reachable URLs
+In your exam exercise, after changing from Rocky’s `mirrorlist=` to the exam server’s `baseurl=`, you should run:
 
 ```bash
-BASEOS_URL="http://repo.eight.example.com/BaseOS"
-APPSTREAM_URL="http://repo.eight.example.com/AppStream"
+dnf clean all
+dnf makecache
 ```
 
-Use instructor-provided URLs. The sample names work only when the lab provides matching DNS and web content.
+That forces DNF to fetch metadata afresh, making it easier to spot an incorrect URL or unreachable repository server. You do not need to run `dnf clean all` before every install; DNF normally manages cache freshness itself.
 
-### Step 2: Record current repositories
+
+## STEP-3: Refresh only these repositories
 
 ```bash
-mkdir -p /root/nexusventures-project02/evidence
-dnf repolist all > /root/nexusventures-project02/evidence/repolist-before.txt
+dnf clean all
+dnf makecache --disablerepo='*'   --enablerepo=Eightbaseos,Eightappstream
+
+dnf repolist --disablerepo='*'   --enablerepo=Eightbaseos,Eightappstream
 ```
+
+### STEP-4: Confirm and install Apache using the new **eight.repo** file:
+
+```bash
+dnf info httpd --disablerepo='*'   --enablerepo=Eightbaseos,Eightappstream
+
+dnf install -y httpd --disablerepo='*'   --enablerepo=Eightbaseos,Eightappstream
+rpm -q httpd                      #Checking RPM - RHEL Package Manager
+```
+
+
+### Troubleshooting Guide 
+**Layer 1 (Physical Layer): Check Physical Cables**
+```bash
+run:
+[root@nitacademy yum.repos.d]# nmcli con show
+NAME             UUID                                  TYPE      DEVICE
+enX0             8059132c-ef59-3024-8cc3-2b2a495896af  ethernet  enX0
+br-377e78284d53  437f1cbf-eea3-4ced-af6f-6c5dbca11b46  bridge    br-377e78284d53
+lo               1a996560-c29e-4ede-a0e3-89afe5db2596  loopback  lo
+docker0          6b0aead6-b070-4bf2-a266-1d780f004c0c  bridge    docker0
+[root@nitacademy yum.repos.d]# ethtool enX0
+Settings for enX0:
+        Link detected: yes
+```
+**RESULT: NIC CARD IS UP (Available), Cable Connection is OK**
+
+**Layer 3 (Network Layer): Gateway or Router issue**
+if the VM’s default gateway changes to an incorrect address, dnf install httpd will normally fail when it needs to reach Rocky’s public mirrors. The gateway is how your VM sends traffic to destinations outside its local subnet.
+
+ DNS is a separate requirement: it turns names such as mirrors.rockylinux.org into IP addresses.
+```bash
+Run:
+cat /etc/resolv.conf                    # Which DNS server is configured? The "home box" (PTCL,MTN,AT&T)
+```
+First, test name resolution for a System Level Check:
+```bash
+getent hosts mirrors.rockylinux.org
+```
+**getent means “get entries.” It asks Linux to look up information using the system’s configured sources.**
+- With hosts, it looks up a hostname using the **host resolution rules** in /etc/nsswitch.conf, which can include /etc/hosts and DNS (/etc/resolv.conf). That makes it useful for checking whether the name works from the VM’s point of view.
+
+If getent above returns an IP address, your VM can resolve the name. To install dig and nslookup on Rocky 9, install bind-utils
+```bash
+dnf install bind-utils -y
+#Now Try the following commands:
+dig mirrors.rockylinux.org
+nslookup mirrors.rockylinux.org
+```
+**Both dig and nslookup ask a DNS server to translate a name into an IP address. The main difference is how much detail they show.**
+This Topic is covered in more detail in our Networking Class.
+
+Layer 3 (Network Layer) - ICMP Echo Request - ICMP Echo Reply
+**ping** sends an ICMP Echo Request, and the target may return an ICMP Echo Reply. ICMP travels inside an IP packet; it does not use TCP or UDP ports.
+
+---
+
+# REAL JOB WORK
+## 1. Business Scenario
+Company - NEXUS installs software only from approved repositories. Company has decided to create a local respository Server for all in-house updates as part of its vulnerability iniitative. You have been hired as a Linux System Admin. The first part of the project is already done, that is, Configuring and Provisioning a New Server that will provide all the respositories. (This is already done by another team)
+
+**What are you being hired to do? PATCHING!!!**
+1. Intially you will test a single VM by creating a new respository file.
+2. Then you will create an Ansible Ad-hoc command to test if this change can be implemented on a VM.
+3. Finally, you will run Ansible Playbook and then use Ansible Tower to implement this company wide change.
+4. You will also make sure you take backups
+5. Rollback if issues come up during patching.
+6. Cleanup 
+
 
 ### Step 3: Test the locations
 
@@ -319,72 +388,11 @@ curl -I --max-time 10 "$BASEOS_URL/"
 curl -I --max-time 10 "$APPSTREAM_URL/"
 ```
 
-### Step 4: Back up and create the repository file
 
-```bash
-[ ! -f /etc/yum.repos.d/nexusventures.repo ] ||   cp -a /etc/yum.repos.d/nexusventures.repo   /root/nexusventures-project02/nexusventures.repo.before
-
-cat > /etc/yum.repos.d/nexusventures.repo <<EOF
-[nexus-baseos]
-name=NexusVentures BaseOS
-baseurl=${BASEOS_URL}
-enabled=1
-gpgcheck=0
-
-[nexus-appstream]
-name=NexusVentures AppStream
-baseurl=${APPSTREAM_URL}
-enabled=1
-gpgcheck=0
-EOF
-```
-
-`gpgcheck=0` matches the isolated exam-style lab. Production repositories should use trusted signatures and keys.
-
-### Step 5: Refresh only these repositories
-
-```bash
-dnf clean all
-dnf makecache --disablerepo='*'   --enablerepo=nexus-baseos,nexus-appstream
-
-dnf repolist --disablerepo='*'   --enablerepo=nexus-baseos,nexus-appstream
-```
-
-### Step 6: Confirm and install Apache
-
-```bash
-dnf info httpd --disablerepo='*'   --enablerepo=nexus-baseos,nexus-appstream
-
-dnf install -y httpd --disablerepo='*'   --enablerepo=nexus-baseos,nexus-appstream
-rpm -q httpd
-```
-
-Do not start Apache until Project 03.
-
-## 6. Required Validation
-
-```bash
-dnf makecache --disablerepo='*' --enablerepo=nexus-baseos,nexus-appstream
-dnf repolist --disablerepo='*' --enablerepo=nexus-baseos,nexus-appstream
-rpm -q httpd
-```
-
-## 7. Evidence Students Must Submit
-
-Submit the `.repo` file, URL tests, `dnf repolist`, metadata refresh, and Apache package version. Explain repository IDs, `enabled`, `baseurl`, and `gpgcheck`.
-
-## 8. Rollback or Cleanup
-
-```bash
-rm -f /etc/yum.repos.d/nexusventures.repo
-dnf clean all
-```
-Restore the backed-up file if one existed.
-
-## 9. Completion Checklist
+## Completion Checklist
 
 - [ ] Correct VM confirmed
-- [ ] Snapshot created when required
+- [ ] Backup created before patching
 - [ ] Original state recorded
 - [ ] Configuration completed
 - [ ] Validation passed
