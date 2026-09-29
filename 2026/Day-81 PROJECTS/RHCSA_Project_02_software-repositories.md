@@ -5,8 +5,8 @@
 
 
 ## RedHat Exam Question:
-Configure the repositories which are available on the repo server at:
-http://repo.eight.example.com/BaseOS
+Configure the repositories which are available on the repo server at:\
+http://repo.eight.example.com/BaseOS \
 http://repo.eight.example.com/AppStream
 
 
