@@ -1,8 +1,331 @@
-# NexusVentures Project 02: Controlled Software Repository Configuration
+# Linux Project 02: Software Repository Configuration
 
-> **Platform:** Rocky Linux 9 VM in Xen Orchestra  
-> **Account:** `root`  
-> **Standard:** Keep SELinux enforcing and firewalld enabled. Persistent work must survive reboot.
+## RHCSA LAB
+![RHCSA Network Topology](image-3.png)
+
+
+## RedHat Exam Question:
+Configure the repositories which are available on the repo server at:
+http://repo.eight.example.com/BaseOS
+http://repo.eight.example.com/AppStream
+
+
+## INTRODUCTION
+Let us first understand this subject matter as a system admin:
+
+![Overview](image.png)
+1. The repo server holds the packages;
+2. ".repo" file is the address book; 
+3. DNF uses ".repo" address book.
+
+## STEP-1: How do we find the list of repositories (repo) in our linux VM (Virtual Machine)?
+```bash
+[root@nitacademy ~]# dnf repolist
+repo id                                                repo name
+appstream                                              Rocky Linux 9 - AppStream
+baseos                                                 Rocky Linux 9 - BaseOS
+docker-ce-stable                                       Docker CE Stable - x86_64
+extras                                                 Rocky Linux 9 - Extras
+```
+## STEP-2: How do you check the STATUS of each repository
+dnf repolist --all tells you which repository entries exist.
+```bash
+[root@nitacademy ~]# dnf repolist --all
+repo id                      repo name                                                                        status
+appstream                    Rocky Linux 9 - AppStream                                                        enabled
+appstream-debuginfo          Rocky Linux 9 - AppStream - Debug                                                disabled
+appstream-source             Rocky Linux 9 - AppStream - Source                                               disabled
+baseos                       Rocky Linux 9 - BaseOS                                                           enabled
+```
+
+## 3  Under 'repo name' find 'enabled'
+> Answer: at the configuration files:
+The files in /etc/yum.repos.d/ will tell you which server addresses those entries use.
+```bash
+[root@nitacademy ~]# cd /etc/yum.repos.d/
+[root@nitacademy yum.repos.d]# pwd
+/etc/yum.repos.d
+[root@nitacademy yum.repos.d]# ll
+total 28
+-rw-r--r--. 1 root root  811 May 16 22:01 docker-ce.repo
+-rw-r--r--. 1 root root 6610 May  8 12:31 rocky-addons.repo
+-rw-r--r--. 1 root root 1165 May  8 12:31 rocky-devel.repo
+-rw-r--r--. 1 root root 2387 May  8 12:31 rocky-extras.repo
+-rw-r--r--. 1 root root 3417 May  8 12:31 rocky.repo
+-rw-r--r--. 1 root root 1425 May  8 12:31 rocky-security.repo
+```
+
+### Now, look into /etc/yum.repos.d/rocky.repo, a configuration file that tells DNF where to find Rocky Linux software. It contains several repository sections
+```shell
+[root@nitacademy yum.repos.d]# cat rocky.repo
+# rocky.repo
+#
+# The mirrorlist system uses the connecting IP address of the client and the
+# update status of each mirror to pick current mirrors that are geographically
+# close to the client.  You should use this for Rocky updates unless you are
+# manually picking other mirrors.
+#
+# If the mirrorlist does not work for you, you can try the commented out
+# baseurl line instead.
+
+[baseos]
+name=Rocky Linux $releasever - BaseOS
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=BaseOS-$releasever$rltype
+#baseurl=http://dl.rockylinux.org/$contentdir/$releasever/BaseOS/$basearch/os/
+gpgcheck=1
+enabled=1
+countme=1
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9
+
+[baseos-debuginfo]
+name=Rocky Linux $releasever - BaseOS - Debug
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=BaseOS-$releasever-debug$rltype
+#baseurl=http://dl.rockylinux.org/$contentdir/$releasever/BaseOS/$basearch/debug/tree/
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9
+
+[baseos-source]
+name=Rocky Linux $releasever - BaseOS - Source
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=source&repo=BaseOS-$releasever-source$rltype
+#baseurl=http://dl.rockylinux.org/$contentdir/$releasever/BaseOS/source/tree/
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9
+
+[appstream]
+name=Rocky Linux $releasever - AppStream
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=AppStream-$releasever$rltype
+#baseurl=http://dl.rockylinux.org/$contentdir/$releasever/AppStream/$basearch/os/
+gpgcheck=1
+enabled=1
+countme=1
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9
+
+[appstream-debuginfo]
+name=Rocky Linux $releasever - AppStream - Debug
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=AppStream-$releasever-debug$rltype
+#baseurl=http://dl.rockylinux.org/$contentdir/$releasever/AppStream/$basearch/debug/tree/
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9
+
+[appstream-source]
+name=Rocky Linux $releasever - AppStream - Source
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=source&repo=AppStream-$releasever-source$rltype
+#baseurl=http://dl.rockylinux.org/$contentdir/$releasever/AppStream/source/tree/
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9
+```
+
+### a "mirror list" and "baseurl" ?
+```shell
+mirrorlist → Rocky's directory of possible servers → a Rocky mirror → packages
+baseurl    → repo.eight.example.com/BaseOS            → packages
+```
+- Mirror list: gives DNF addresses of available download servers.
+- Mirror servers: hold the BaseOS and AppStream package catalogs and RPM files.
+- DNF: compares those catalogs with what your VM has installed, then downloads and installs needed updates.
+
+The mirror list and catalog information may be cached, so DNF does not have to fetch them from scratch on every run.
+It means Rocky Linux helps your VM to choose a suitable download server, called a mirror.
+For your Houston VM, the process looks like this:
+1. Your VM asks Rocky’s mirror list service for BaseOS or AppStream download locations.
+2. The service sees the public IP address the request came from and uses it to estimate your location. If your VM is behind a router, this is usually the router’s public IP, not the VM’s 192.168.1.x address.
+3. It checks which mirrors have current, synchronized packages.
+4. It returns suitable mirrors, preferably ones geographically near you. DNF then downloads from a mirror on that list.
+“You should use this for Rocky updates” means: leave the active mirrorlist= setting in place for normal use. If you intentionally choose a specific server—such as your organization’s own package mirror—you can configure a direct baseurl= instead.
+Classroom analogy: The mirror list is a dispatcher. It finds an up-to-date warehouse near you; the mirror is the warehouse that actually supplies the packages.
+
+![alt text](<mermaid-diagram (1).png>)
+
+> BaseOS and AppStream are enabled. Their mirrorlist= settings tell DNF where to find current package servers. dnf update checks those repositories for newer versions and, if available, downloads and installs them
+
+> Here is the dnf update flow:
+
+---
+![alt text](image-1.png)
+
+
+
+Your check worked. On your Rocky Linux VM, both repositories already exist and are enabled:
+Repo ID	Status	Current name
+baseos	Enabled	Rocky Linux 9 - BaseOS
+appstream	Enabled	Rocky Linux 9 - AppStream
+
+Whether they are additional repositories depends on what is already configured:
+- If your VM has no working BaseOS and AppStream entries, this file supplies them.
+- If it already has entries for them, you are pointing DNF to another source for the same kinds of packages. You should avoid reusing the same repository IDs ([baseos] and [appstream]) in two files.
+For the exam, a safe way to distinguish the supplied sources is to name their IDs [exam-baseos] and [exam-appstream]. The IDs can be your own names; the baseurl values must match the addresses in the question exactly.
+
+
+
+# BaseOS and AppStream in Rocky Linux 9
+
+[Official Red Hat documentation: Repositories in RHEL 9](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/considerations_in_adopting_rhel_9/ref_repositories_considerations-in-adopting-rhel-9)
+
+On your **Rocky Linux 9** VM, BaseOS and AppStream are software repositories: collections of packages that `dnf` can download and update.
+
+| Repository | What it provides | Think of it as |
+|---|---|---|
+| **BaseOS** | Core operating system components, such as the kernel and essential system tools | The foundation of the house |
+| **AppStream** | Additional applications, programming languages, runtimes, and databases | The tools and services you put in the house |
+
+Both are normal parts of Rocky Linux. When you run `dnf install`, DNF checks the enabled repositories and downloads the requested package and its required dependencies.
+
+To see the enabled repositories on your VM:
+
+```bash
+dnf repolist
+```
+## REDHAT EXAM QUESTION
+Configure the repositories which are available on the repo server at:
+http://repo.eight.example.com/BaseOS
+http://repo.eight.example.com/AppStream
+
+## Let us understand the Question
+The exam task asks you to configure two DNF repositories using the exact URLs shown. 
+
+## What you do on the exam VM
+1. Create a file that tells DNF the two addresses:
+```bash
+vi /etc/yum.repos.d/eight.repo
+```
+Press i to enter insert mode, then type:
+```bash
+[baseos]
+name=BaseOS
+baseurl=http://repo.eight.example.com/BaseOS
+enabled=1
+gpgcheck=0
+
+[appstream]
+name=AppStream
+baseurl=http://repo.eight.example.com/AppStream
+enabled=1
+gpgcheck=0
+```
+The file `/etc/yum.repos.d/rocky.repo` tells DNF where to find Rocky Linux software. This handout focuses on the two enabled repositories, **BaseOS** and **AppStream**.
+
+**Teaching analogy:** The repository holds the software packages. The `.repo` file holds the directions to that repository.
+
+### First, the lines beginning with `#`
+
+```ini
+# rocky.repo
+# The mirrorlist system uses ...
+```
+
+A `#` makes a line a **comment**. DNF ignores it. The opening comments explain why Rocky normally uses a mirror list: it can direct your VM to an available Rocky download server near you.
+
+### The enabled BaseOS section
+
+```ini
+[baseos]
+name=Rocky Linux $releasever - BaseOS
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=BaseOS-$releasever$rltype
+#baseurl=http://dl.rockylinux.org/$contentdir/$releasever/BaseOS/$basearch/os/
+gpgcheck=1
+enabled=1
+countme=1
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9
+```
+
+| Line | What to tell your students |
+|---|---|
+| `[baseos]` | This section’s **repository ID** is `baseos`. That is the ID shown by `dnf repolist`. |
+| `name=...` | A readable name for people. `$releasever` is filled in by DNF; on this Rocky 9 system, it displays as `9`. |
+| `mirrorlist=...` | Ask Rocky’s mirror service for a list of servers that carry BaseOS packages. The mirror list is **not itself the package warehouse**; it gives DNF warehouse addresses. |
+| `#baseurl=...` | An alternative direct address. The `#` means it is **currently inactive**. DNF is using `mirrorlist`, not this `baseurl`. |
+| `gpgcheck=1` | Check downloaded RPM packages against a trusted cryptographic signature before installing them. `1` means on. |
+| `enabled=1` | DNF is allowed to use this repository. This is why `baseos` appears in `dnf repolist`. |
+| `countme=1` | Allows Rocky to estimate how many systems use its mirrors during normal DNF requests. It does not install anything. |
+| `metadata_expire=6h` | After six hours, DNF checks whether its cached **package catalog** needs updating. It does not mean installed packages expire after six hours. |
+| `gpgkey=file:///...` | The location of Rocky’s public signing key **on your VM**. DNF uses it for the signature check. `file://` means a local file, not a web address. |
+
+Reference: [DNF configuration reference](https://dnf.readthedocs.io/en/latest/conf_ref.html).
+
+In the mirror URL, `$basearch` means your system’s architecture, such as `x86_64`; `$releasever` identifies the release. `$rltype` is a Rocky specific value used when forming the requested repository name. **DNF substitutes these values** before contacting the mirror service—you do not type replacements into this file yourself.
+
+### The enabled AppStream section
+
+```ini
+[appstream]
+name=Rocky Linux $releasever - AppStream
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=AppStream-$releasever$rltype
+#baseurl=http://dl.rockylinux.org/$contentdir/$releasever/AppStream/$basearch/os/
+gpgcheck=1
+enabled=1
+countme=1
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9
+```
+
+It uses **the same settings in the same way**. The key differences are its ID, `[appstream]`, and its URLs, which request **AppStream** rather than **BaseOS** packages. Both are enabled, so DNF can use both when resolving an installation.
+
+### How this relates to your exam question
+
+Your VM currently says, in effect: **“Ask Rocky’s mirror service where to get BaseOS and AppStream.”**
+
+The exam question says: **“Configure DNF to get them from these exact addresses on `repo.eight.example.com`.”** That is why the exam solution uses `baseurl=`: the question provides **direct repository addresses**, so there is no mirror list to ask.
+
+**Note about the other sections:** `baseos-debuginfo`, `baseos-source`, `appstream-debuginfo`, and `appstream-source` are separate repositories for debugging information or source code. Each has `enabled=0`, so DNF does not normally use them.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## 1. Exam Task Converted to a Project
 
