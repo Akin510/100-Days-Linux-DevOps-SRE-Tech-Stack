@@ -9,6 +9,8 @@ Configure the repositories which are available on the repo server at:\
 http://repo.eight.example.com/BaseOS \
 http://repo.eight.example.com/AppStream
 
+### Explanation:
+For the exam/real scenario, the task is to configure access to the specific exam server URLs. On your own VM, check to see if you already have working Rocky repositories, so leave them in place. If you practice adding the exam entries, give them distinct IDs such as [exam-baseos] and [exam-appstream]. The repo.eight.example.com address is intended for the exam network and may not work from your home lab.
 
 ## INTRODUCTION
 Let us first understand this subject matter as a system admin:
