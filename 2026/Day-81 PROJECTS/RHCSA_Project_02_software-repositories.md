@@ -128,19 +128,24 @@ gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9
 ```
 ### Configuration file Explained
 We need to understand the following Terminologies:
-1. mirrorlist
-2. baseurl
-3. gpgcheck
-4. enabled
+1. mirrorlist: this gives DNF addresses of available download servers.
+2. baseurl: 
+3. gpgcheck=1: 
+- This tells DNF to verify the digital signature on each RPM Package before installing it.
+- 1 means check is on;
+- 0 means check is off (IF no key. In the exam this select gpgcheck=0)
+4. gpgkey
+- This tells DNF to find Rocky's Public Key for that verification
+- file:// means the key file is in the localhost.
+4. enabled=1
 5. gpgkey
 - Mirror list: gives DNF addresses of available download servers.
 - Mirror servers: hold the BaseOS and AppStream package catalogs and RPM files.
 - DNF: compares those catalogs with what your VM has installed, then downloads and installs needed updates.
 
-What is the difference
-mirrorlist → Rocky's directory of possible servers → a Rocky mirror → packages
-baseurl    → repo.eight.example.com/BaseOS            → packages
-```
+> Important Note: An exam question not mentioning a key does not by itself prove that gpgcheck=0 is required. A suitable key might already be installed. In a practice lab, gpgcheck=0 is commonly used to keep the exercise focused on configuring the two URLs. For a real repository, keep signature checking on and configure the correct key whenever signed packages and that key are available.
+
+
 The mirror list and catalog information may be cached, so DNF does not have to fetch them from scratch on every run.
 It means Rocky Linux helps your VM to choose a suitable download server, called a mirror.
 For your Houston VM, the process looks like this:
