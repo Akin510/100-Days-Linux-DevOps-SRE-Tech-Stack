@@ -1,7 +1,7 @@
 # Linux Project 02: Software Repository Configuration
 
 ## RHCSA LAB
-![RHCSA Network Topology](image-3.png)
+![RHCSA Project 2](image-4.png)
 
 
 ## RedHat Exam Question:
