@@ -10,6 +10,16 @@
 
 Find all regular files larger than 4 MiB under `/etc` and copy them to `/find/largefiles`.
 
+# EXAM SOLUTION EASY
+```bash
+mkdir -p /find/largefiles
+find /etc/ -type f -size +4M  -exec cp {} /find/largefiles/ \;
+ls -lh /find/largefiles
+```
+## YOU ARE DONE WITH ANSWERING THE EXAM QUESTION
+
+
+
 ## 2. Business Scenario
 
 At the company you are investigating unexpected file size growth under `/etc`. 
@@ -29,13 +39,7 @@ System Admin will plan:
 - Create a Xen Orchestra snapshot before disruptive work OR File Backups before deleting.
 
 
-# EXAM SOLUTION EASY
-```bash
-mkdir -p /find/largefiles
-find /etc/ -size +4M -type f -exec cp {} /find/largefiles/ \;
-ls -lh /find/largefiles
-```
-## YOU ARE DONE WITH ANSWERING THE EXAM QUESTION
+
 
 ---
 ## FOLLOWING INFORMATION IS ONLY FOR REAL JOB ACTIVITIES
