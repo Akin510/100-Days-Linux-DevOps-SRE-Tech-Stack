@@ -1,48 +1,63 @@
-# NexusVentures Project 10: Large Configuration File Discovery and Collection
+# Linux Project 10: Large Configuration File Discovery and Collection
 
 > **Platform:** Rocky Linux 9 VM in Xen Orchestra  
 > **Account:** `root`  
 > **Standard:** Keep SELinux enforcing and firewalld enabled. Persistent work must survive reboot.
 
-## 1. Exam Task Converted to a Project
+# Introduction
+![alt text](image-8.png)
+## 1. Interview Question - How do you find large files in Linux Filesystem
 
 Find all regular files larger than 4 MiB under `/etc` and copy them to `/find/largefiles`.
 
 ## 2. Business Scenario
 
-NexusVentures is investigating unexpected growth under `/etc`. Students must preserve matching files without basename collisions.
+At the company you are investigating unexpected file size growth under `/etc`. 
 
-## 3. Learning Outcomes
+## 3. Typical Patching Outcomes
 
-Students will plan the change, record the original state, implement the configuration, explain each command, validate the result, test reboot persistence where applicable, and document rollback.
+System Admin will plan:
+1. The change, 
+2. Record the original state, 
+3. Implement the configuration, 
+4. Validate the result, test reboot persistence where applicable, and document rollback.
 
 ## 4. Safety and Prerequisites
 
 - Confirm the assigned VM with `hostnamectl` and `ip -brief address`.
 - Confirm `whoami` returns `root`.
-- Create a Xen Orchestra snapshot before disruptive work.
+- Create a Xen Orchestra snapshot before disruptive work OR File Backups before deleting.
 
 
-## 5. Step-by-Step Solution
+# EXAM SOLUTION EASY
+```bash
+mkdir -p /find/largefiles
+find /etc/ -size +4M -type f -exec cp {} /find/largefiles/ \;
+ls -lh /find/largefiles
+```
+## YOU ARE DONE WITH ANSWERING THE EXAM QUESTION
 
-### Step 1: Prepare and inventory
-
+---
+## FOLLOWING INFORMATION IS ONLY FOR REAL JOB ACTIVITIES
+# REAL JOB REQUIREMENTS
 ```bash
 mkdir -p /find/largefiles
 find /etc -xdev -type f -size +4M -printf '%s %p\n' | sort -n   | tee /root/project10-source-inventory.txt
 ```
 
-### Step 2: Controlled test file when no matches exist
+### Step 1: Controlled test file when no matches exist
 
 Only with instructor approval:
 
 ```bash
-dd if=/dev/zero of=/etc/nexusventures-large-test.bin bs=1M count=5 status=progress
+dd if=/dev/zero of=/etc/nexus-large-test.bin bs=1M count=5 status=progress
+#alternatively use:
+truncate -s 5M /etc/nexus-large-test.bin
 ```
 
 Run the inventory again.
 
-### Step 3: Copy while preserving paths
+### Step 2: Copy while preserving paths
 
 ```bash
 cd /
@@ -51,14 +66,14 @@ find etc -xdev -type f -size +4M   -exec cp --parents --preserve=mode,timestamps
 
 Preserving parent paths prevents two files with the same basename from overwriting each other.
 
-### Step 4: Inspect destination
+### Step 3: Inspect destination
 
 ```bash
 find /find/largefiles -type f -printf '%s %p\n' | sort -n
 du -sh /find/largefiles
 ```
 
-### Step 5: Compare counts
+### Step 4: Compare counts
 
 ```bash
 SOURCE_COUNT=$(find /etc -xdev -type f -size +4M | wc -l)
@@ -67,7 +82,7 @@ printf 'Source=%s\nDestination=%s\n' "$SOURCE_COUNT" "$DEST_COUNT"
 test "$SOURCE_COUNT" -eq "$DEST_COUNT"
 ```
 
-### Step 6: Compare checksums
+### Step 5: Compare checksums
 
 ```bash
 cd /
@@ -78,7 +93,7 @@ while IFS= read -r source; do
 done < <(find /etc -xdev -type f -size +4M)
 ```
 
-### Step 7: Save destination inventory
+### Step 6: Save destination inventory
 
 ```bash
 find /find/largefiles -type f -exec sha256sum {} +   > /root/project10-destination-sha256.txt
@@ -94,7 +109,7 @@ test "$SOURCE_COUNT" -eq "$DEST_COUNT"
 find /find/largefiles -type f -size +4M | grep -q .
 ```
 
-## 7. Evidence Students Must Submit
+## 7. EvidencE to Submit
 
 Submit source and destination inventories, counts, disk use, checksum comparisons, and explanation of `-xdev`, `+4M`, and `--parents`.
 

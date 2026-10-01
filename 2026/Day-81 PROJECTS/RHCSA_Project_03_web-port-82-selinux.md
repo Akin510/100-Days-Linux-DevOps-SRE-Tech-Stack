@@ -1,8 +1,26 @@
-# NexusVentures Project 03: Secure Apache Service on TCP Port 82
+# Project 03: Secure Apache Service on TCP Port 82
 
 > **Platform:** Rocky Linux 9 VM in Xen Orchestra  
 > **Account:** `root`  
 > **Standard:** Keep SELinux enforcing and firewalld enabled. Persistent work must survive reboot.
+
+# Introduction
+![alt text](image-7.png)
+
+# 📌 Quick Revision
+
+| Item | What you Should Know |
+|---|---|
+| SELinux | Additional Linux security layer |
+| Context | Security label assigned to resources/processes |
+| Type | Most important field for beginners |
+| Type ending | Usually `_t` |
+| `ls -lZ` | View file SELinux context |
+| `ps -eZ` | View process SELinux context |
+| `httpd_t` | Common Apache process type |
+| `httpd_sys_content_t` | Common web-content type |
+| `tmp_t` | Temporary-file type |
+| `getenforce` | Check SELinux operating mode |
 
 ## 1. Exam Task Converted to a Project
 
