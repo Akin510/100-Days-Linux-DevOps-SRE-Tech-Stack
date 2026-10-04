@@ -78,6 +78,7 @@ Assign the following IP addresses, subnet masks, and default gateways:
 | **Router1** | GigabitEthernet0/0/0 *(LAN2)* | `192.168.2.1` | `255.255.255.0` | N/A |
 | **PC1** | FastEthernet0 | `192.168.2.10` | `255.255.255.0` | `192.168.2.1` |
 
+![alt text](image-1.png)
 ---
 
 # 3. Step-by-Step Lab Setup
