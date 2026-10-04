@@ -18,6 +18,7 @@ By the end of this lab, students will be able to:
 - Use Cisco Packet Tracer **Simulation Mode** to observe ARP and ICMP packets.
 
 ---
+![alt text](image.png)
 
 # 1. Network Topology
 
