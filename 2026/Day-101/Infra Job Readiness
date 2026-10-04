@@ -1,0 +1,953 @@
+# NIT Academy Infrastructure Job Readiness Training Manual
+
+Instructor edition with student exercises and assessment answer keys  
+Prepared for Nadeem Siddiqi  
+Version 1.0 • 1 October 2026
+
+## 1 Purpose and realistic outcomes
+
+This manual trains candidates to build, operate, troubleshoot, secure, and recover a small Linux infrastructure environment. It uses your Dell PowerEdge R620, an XCP-ng hypervisor managed through Xen Orchestra, one Cisco router, and one Cisco switch. It connects each exercise to the supplied job requirements and produces evidence students can explain in an interview.
+
+**One week is a useful assessment and revision sprint for students who already administer Linux. It is not enough to create the strong working experience described in this job specification.** No training program can guarantee that a candidate will clear every interview. The goal is demonstrated competence, clear reasoning, and honest descriptions of lab experience.
+
+Recommended time frames below are instructional estimates, not employer guarantees. Advancement depends on the practical assessment, not attendance.
+
+| Starting point | Recommended instruction | Reasonable outcome |
+|---|---|---|
+| Already manages Linux services, users, networking, and filesystems | 7 days at 7 focused hours daily | Interview revision and evidence of integrated troubleshooting |
+| Knows shell basics but needs substantial prompting | 4 weeks at 30 focused hours weekly | Foundation for supervised junior Linux or infrastructure duties |
+| Beginner in both Linux and networking | 8–12 weeks at 20–25 focused hours weekly | Foundational competence followed by the four week lab sequence |
+| Seeking independent responsibility for all listed requirements | Continued supervised operations beyond the course | Experience with production incidents, real hardware changes, and organizational procedures |
+
+The four week path is the recommended default. The seven day path uses the same lab, with fewer repetitions. An experienced candidate may complete it sooner; a beginner should repeat modules until they meet the gates.
+
+### Entry assessment
+
+Give each student a clean Linux VM and 60 minutes. Ask them to create a non-root account, grant sudo, configure a persistent IP, install and enable a service, identify its port, create a persistent mount on an assigned blank disk, and diagnose a deliberately stopped service. They must explain their commands and preserve access.
+
+Students may use installed man pages. Score each of the seven tasks out of 10: correct result 4, explanation 2, persistent verification 2, safe execution 2. Require at least 56/70 with no destructive mistake to enter the one week sprint. Students who need command-by-command prompting should use the longer path.
+
+## 2 Coverage and remaining experience gaps
+
+| Job requirement | Hands-on exercise | Evidence and limitation |
+|---|---|---|
+| Linux administration and existing stack operation | Labs 3, 4, 6, 9 | Users, packages, services, mounts, reboot checks |
+| Server, storage, networking, compute | Labs 1–5 | Inventory, topology, VM provisioning, LVM and NFS |
+| Physical and virtual IP networking | Labs 2 and 3 | VLANs, trunks, router subinterfaces, VM network mapping |
+| Debugging complex issues | Labs 7 and 10 | Layered diagnosis, competing hypotheses, incident reports |
+| Permissions, firewalls, hardening, compliance | Lab 6 | Least privilege, SELinux, firewall tests, policy evidence |
+| Resource monitoring and bottlenecks | Lab 7 | Baselines, bounded load, CPU, memory, disk and network interpretation |
+| Router, switch, firewall and AP lifecycle | Labs 1 and 8 | Asset register and migration plan; AP and appliance work require those devices |
+| RAM, drives, CPUs, PSUs and motherboard components | Lab 8 | Supervised component work on a spare system; production R620 observation only |
+| Drivers and firmware | Labs 1 and 8 | Version and compatibility record, staged upgrade and rollback plan |
+| Rack, stack, cable, label | Labs 1 and 8 | Port map and supervised physical work if a suitable rack is available |
+| Independent new deployment | Lab 9 | Service deployed from clean VM, tested, documented and recoverable |
+| Development debugging environment | Lab 9 | Versioned environment, logs, reproduction steps and handoff |
+| Team roadblocks, priorities, scope and communication | Labs 9 and 10 | Change request, blocker log, status updates and priority negotiation |
+
+An IOS ACL and a Linux firewall provide packet-filtering practice. They do not replace experience operating a commercial stateful hardware firewall. One router does not provide a real two-router adjacency exercise. One switch does not provide real switch stacking or resilient multi-switch operation. One host does not demonstrate host failover. These gaps are explicitly included in the extension plan.
+
+## 3 Lab design
+
+### Assumptions to verify before class
+
+The configuration examples assume a Cisco IOS router with an Ethernet interface named `GigabitEthernet0/0` and a Catalyst-style switch with `GigabitEthernet1/0/1` ports. If your purchased models are the previously discussed Cisco 2921 and Catalyst 2960-S, these are plausible examples; verify the actual names and installed image. Record `show version`, `show inventory`, and `show ip interface brief` before changing anything. Use context-sensitive `?` help where syntax differs.
+
+The R620 runs XCP-ng; Xen Orchestra is its management application. Student application packages belong in Linux guest VMs, not the XCP-ng control domain. Confirm available RAM, storage repository space, NICs, current backups, and installed versions before calculating class capacity.
+
+The main lab is deliberately offline. Download packages and prepare VM templates before class. No lab DHCP server or lab uplink should be connected to the existing academy LAN. Internet access can be added later through a separately reviewed routed connection.
+
+### Physical connections
+
+| Connection | Suggested port | Purpose |
+|---|---|---|
+| Existing academy management network to R620 | Existing management NIC | Keep existing XO and host access |
+| Cisco router to Cisco switch | Router G0/0 to switch Gi1/0/1 | Tagged trunk for VLANs 10, 20, 30 |
+| Spare R620 NIC to Cisco switch | Switch Gi1/0/2 | Tagged VM lab trunk only |
+| Student test laptop to Cisco switch | Switch Gi1/0/3 | Untagged access VLAN 10 |
+| Console laptop to Cisco router or switch | Console port | Recovery independent of IP connectivity |
+
+Leave the router's WAN interface disconnected initially. Do not repurpose the R620 management NIC. If there is no spare NIC, run Linux exercises on private virtual networks first and schedule physical VLAN integration only after a reviewed maintenance plan. The manual does not authorize changes to your live management network.
+
+```mermaid
+flowchart TD
+    M["Existing academy management LAN"] --> H["R620 management NIC and XCP-ng"]
+    H --> X["Xen Orchestra"]
+    R["Cisco router VLAN gateways"] --> S["Cisco switch lab trunks"]
+    S --> P["R620 spare NIC"]
+    P --> V["XO VLAN networks 10 20 30"]
+    V --> A["Admin and client VMs"]
+    V --> B["Application VMs"]
+    V --> C["Storage VMs"]
+    S --> L["Test laptop access VLAN 10"]
+```
+
+### Address plan
+
+Use these addresses only after confirming they do not overlap an existing network, VPN route, or other lab. The names use `.test` for the isolated training environment.
+
+| VLAN | Subnet | Gateway | Example addresses |
+|---|---|---|---|
+| 10 ADMIN | 10.77.10.0/24 | 10.77.10.1 | switch .2, laptop .50, admin01 .11 |
+| 20 APP | 10.77.20.0/24 | 10.77.20.1 | app01 .11, debug01 .12 |
+| 30 STORAGE | 10.77.30.0/24 | 10.77.30.1 | storage01 .11 |
+| 999 UNUSED_NATIVE | No IP subnet | None | Native VLAN only; no users or SVI |
+
+Each pair receives a unique final octet: pair 1 uses .11; pair 2 uses .21; pair 3 uses .31, and so on. The instructor maintains the allocation register. Debug VMs use the next available address for their pair. Do not clone a VM onto the network with the original IP or hostname still active.
+
+For each pair, create `admin01`, `app01`, and `storage01` with 1 vCPU, 2 GiB RAM, and a 20 GiB OS disk each. Add a blank 8 GiB virtual disk to app01. Add debug01 only when Lab 9 begins. Use Rocky Linux 9 or a properly entitled RHEL 9 installation consistently throughout the cohort. The commands here target that family; test your exact package availability during preparation.
+
+Eight pairs running three VMs each need about 48 GiB guest RAM and 544 GiB of nominal guest disk allocation, before backups, templates, snapshots and overhead. Plan for all reserved space even if disks are thin provisioned. Add 16 GiB RAM and 160 GiB nominal disk for eight simultaneous debug VMs. Actual host headroom and disk performance, not VM count alone, determine the safe class size. Limit concurrent load and backup tests.
+
+One physical router and switch are shared assets. Rotate two-student pairs through scheduled networking sessions; other students work in VMs. Only the pair scheduled for physical changes receives configuration access. All students must personally complete the physical verification task before passing.
+
+## 4 Instructor preparation
+
+Allow one to two working days before the first cohort. This preparation is separate from student training hours.
+
+1. Inventory the router, switch, R620, NICs, RAID controller, memory, disks, PSUs, iDRAC, power connections and firmware. Confirm access to local console. If iDRAC is unavailable, establish a working local-console recovery method before class.
+2. Save switch and router configurations to a secure instructor location. Record the management-network settings and backup destination. Verify a recent recoverable backup of existing workloads before maintenance.
+3. Inspect the lab cable path. Label both ends. Use a cable tester and a port map. Confirm that no lab uplink bridges into the academy LAN.
+4. Configure the isolated physical lab using Lab 2. Pilot it with one test VM and the test laptop. Never test faults on the management path.
+5. Prepare a Linux template with working repositories and packages: `httpd`, `lvm2`, `xfsprogs`, `nfs-utils`, `sysstat`, `tcpdump`, `bind-utils`, `policycoreutils-python-utils`, `audit`, `acl`, `rsync`, `curl`, and `python3`. Include normal NetworkManager, firewalld and OpenSSH packages. Verify installation on the chosen distribution. Additional packages may need additional repositories; keep an offline copy or preinstall them.
+6. Create student VMs from the template, allocate unique addresses, install guest tools following the XCP-ng guide, and record assigned virtual disks. Capture a baseline snapshot of powered-off clean lab VMs for reset.
+7. Configure a backup destination outside the R620 for the recovery exercise. An existing spare machine exporting NFS or SMB may suffice. If only same-host storage is available, label the exercise a restore rehearsal that does not protect against host loss.
+8. Pre-create a small test website and the Lab 9 application source. Prepare sample hardware event logs with identifying information removed.
+9. Pilot every command and fault once. Record actual console output and the reset method. These examples are instructional configurations, not commands verified against your live equipment.
+10. Keep instructor fault cards and answer keys separate from the student copy during assessment. Assign each student an evidence folder and review it daily.
+
+**Change boundary:** students can modify their assigned VMs. Changes to shared lab networking need the instructor's scheduling approval. Hardware shutdown or component work requires a maintenance window and a spare practice system where available. No deliberate physical failure is injected into the R620 hosting other workloads.
+
+## 5 Training schedule
+
+### Seven day readiness sprint
+
+Each day contains seven focused hours, excluding breaks: one hour explanation, four hours practical work, one hour incident practice, and one hour evidence review and interview discussion. Day 7 uses the assessment structure instead.
+
+| Day | Main work | Exit requirement |
+|---|---|---|
+| 1 | Inventory, cabling, topology, Linux baseline | Accurate inventory and recovery access |
+| 2 | Switch VLANs, router gateways, XO VLAN networks, persistent guest IP | Explain and trace a packet end to end |
+| 3 | Users, services, storage, LVM, NFS | Persistent service and mount after reboot |
+| 4 | Security, SELinux, firewall, least privilege | Permitted and denied access tests |
+| 5 | Monitoring, bottlenecks, hardware and lifecycle tabletop | Diagnose measured faults without guessing |
+| 6 | Debug environment, deployment, backup and restore | Fresh deployment and restored service |
+| 7 | Four hour practical, one hour interview, two hour review | Pass gates or receive a remediation plan |
+
+The sprint assumes students already know the Linux operations they apply. It compresses practice; it does not remove assessment requirements. Hardware rotations can run alongside VM exercises.
+
+### Recommended four week program
+
+| Week | Thirty hour allocation | Independent milestone |
+|---|---|---|
+| 1 | Linux baseline 12 h; physical and virtual networking 12 h; review 6 h | Rebuild networking and Linux baseline from task sheet |
+| 2 | Storage 10 h; security 10 h; measured troubleshooting 10 h | Solve one network, one storage and one security fault |
+| 3 | Deployment 8 h; recovery 8 h; hardware and lifecycle 8 h; team practice 6 h | Deploy, restore, and hand off a documented service |
+| 4 | Mixed incidents 12 h; alternate rebuild 6 h; mock interview 4 h; assessment and remediation 8 h | Pass unseen practical and explain decisions |
+
+For beginners, first add shell and filesystem navigation, editors, permissions, processes, package management, systemd, IP addressing, subnetting, ARP, TCP and UDP, DNS, SSH, and basic virtualization. Use hands-on exit checks for these prerequisites before starting Week 1.
+
+## 6 Evidence standard for every exercise
+
+For each lab, students submit: the requested outcome; starting state; proposed change; exact commands or configuration; before and after evidence; persistent proof where relevant; rollback; and a short explanation of what they learned. A screenshot alone is insufficient.
+
+In an assigned Linux VM:
+
+```bash
+mkdir -p ~/evidence/{inventory,network,linux,storage,security,performance,recovery,incidents}
+date -Is | tee ~/evidence/start-time.txt
+```
+
+Save relevant outputs with `tee`, or paste sanitized commands and results into a report. Do not record passwords, private keys, customer information or authentication tokens. Network captures can contain credentials or application data; restrict capture scope and store them with limited access.
+
+Use the same troubleshooting sequence in all incidents:
+
+1. Confirm who is affected, what changed, when it began, and the business impact.
+2. State two plausible causes and the evidence that would distinguish them.
+3. Check the lowest relevant layer before changing a higher layer.
+4. Make one justified change with a rollback path.
+5. Verify the user's transaction, not only a ping or green service status.
+6. Check persistence and document root cause, restoration, and prevention.
+
+## 7 Lab 1 Inventory and physical infrastructure
+
+**Task:** create a usable asset register and trace the path from a client to a VM. Time: 2–3 hours.
+
+1. Record make, model, serial or service tag, location, owner, role, warranty or support evidence, and current firmware. Keep this information in the instructor's protected register.
+2. Run the following in Linux guests, not as an invitation to install guest tools on the hypervisor:
+
+```bash
+hostnamectl
+cat /etc/os-release
+lscpu
+free -h
+lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINTS,MODEL,SERIAL
+ip -br link
+ip -br address
+lspci -nnk
+```
+
+3. On Cisco equipment, capture `show version`, `show inventory`, `show interfaces status` on the switch, and `show ip interface brief` on both devices. Some platforms use different inventory commands.
+4. In XO, record host RAM, VM vCPU allocations, storage repository used and free space, physical interfaces and VM networks. Read existing hardware health using iDRAC or local diagnostics; do not change settings.
+5. Produce a port map: source device and port, cable ID, destination device and port, VLAN mode, allowed VLANs, and link speed. Put labels on both ends of the lab cables.
+6. Explain copper Ethernet versus fiber, access versus trunk, management versus data traffic, physical disk versus RAID virtual disk versus XCP-ng virtual disk, and in-band versus out-of-band management.
+
+**Pass:** instructor randomly selects one cable and one VM; the student traces both accurately and identifies the affected users if the cable is removed. **Rollback:** this exercise is observational; restore any moved lab cable to the recorded port map.
+
+## 8 Lab 2 Configure physical and virtual networking
+
+**Task:** route between isolated administrative, application, and storage VLANs. Time: 4–6 hours initially, plus individual rotation.
+
+Use the device console. Adapt interface names after discovery. Do not enter these configurations on equipment serving an existing production network without merging and reviewing its current configuration.
+
+### Switch configuration
+
+```text
+enable
+configure terminal
+hostname NIT-LAB-SW1
+vlan 10
+ name ADMIN
+exit
+vlan 20
+ name APP
+exit
+vlan 30
+ name STORAGE
+exit
+vlan 999
+ name UNUSED_NATIVE
+exit
+interface GigabitEthernet1/0/1
+ description TO_ROUTER_G0_0
+ switchport mode trunk
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 10,20,30,999
+ switchport nonegotiate
+ no shutdown
+exit
+interface GigabitEthernet1/0/2
+ description TO_R620_LAB_NIC
+ switchport mode trunk
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 10,20,30,999
+ switchport nonegotiate
+ no shutdown
+exit
+interface GigabitEthernet1/0/3
+ description LAB_TEST_CLIENT
+ switchport mode access
+ switchport access vlan 10
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+ no shutdown
+exit
+interface Vlan10
+ ip address 10.77.10.2 255.255.255.0
+ no shutdown
+exit
+ip default-gateway 10.77.10.1
+end
+```
+
+PortFast and BPDU guard here apply to the client port. Do not copy them blindly to links between switches. This example does not configure physical switch stacking. The 2960-S uses 802.1Q; do not add `switchport trunk encapsulation dot1q` if its CLI does not offer that command.
+
+### Router configuration
+
+```text
+enable
+configure terminal
+hostname NIT-LAB-R1
+interface GigabitEthernet0/0
+ description TO_LAB_SWITCH
+ no ip address
+ no shutdown
+exit
+interface GigabitEthernet0/0.10
+ encapsulation dot1Q 10
+ ip address 10.77.10.1 255.255.255.0
+exit
+interface GigabitEthernet0/0.20
+ encapsulation dot1Q 20
+ ip address 10.77.20.1 255.255.255.0
+exit
+interface GigabitEthernet0/0.30
+ encapsulation dot1Q 30
+ ip address 10.77.30.1 255.255.255.0
+exit
+interface GigabitEthernet0/0.999
+ encapsulation dot1Q 999 native
+ no ip address
+exit
+end
+```
+
+Connected routes are sufficient for these three subnets. No OSPF, internet default route or NAT is needed for this isolated exercise. Router-on-a-stick shares one physical link; students must identify the bandwidth and failure implications.
+
+### XO network setup
+
+1. Identify the spare physical NIC by its MAC address and cable map.
+2. Create a VLAN-backed network on that NIC for VLAN 10, named `LAB-ADMIN-10`.
+3. Create `LAB-APP-20` with VLAN ID 20 and `LAB-STORAGE-30` with VLAN ID 30 on the same spare NIC.
+4. Attach admin01, app01 and storage01 to their respective networks.
+5. Leave the guest NIC untagged. XCP-ng handles VLAN tagging for these VLAN-backed networks. Do not also add a VLAN subinterface inside the guest for this design.
+6. Use default MTU 1500 throughout the exercise. Leave the management network and its interface unchanged.
+
+The exact XO screen labels vary by version. Use its network creation workflow or current documentation; the required outcome is the VLAN ID mapped to the correct physical interface.
+
+### Guest address configuration
+
+On app01, discover the interface and connection first:
+
+```bash
+nmcli device status
+nmcli connection show
+ip -br link
+```
+
+The following example assumes interface `enX0` and connection name `System enX0`. Replace both with discovered values. Run from the VM console because activation may interrupt SSH.
+
+```bash
+nmcli connection modify 'System enX0' \
+  ipv4.method manual ipv4.addresses 10.77.20.11/24 \
+  ipv4.gateway 10.77.20.1 ipv4.dns '' ipv4.ignore-auto-dns yes
+nmcli connection up 'System enX0'
+hostnamectl set-hostname app01.lab.test
+```
+
+Set admin01 to 10.77.10.11/24 with gateway 10.77.10.1 and storage01 to 10.77.30.11/24 with gateway 10.77.30.1. Use unique pair addresses. Configure the test laptop manually as 10.77.10.50/24 with gateway 10.77.10.1. No public DNS resolver is reachable in this offline topology. Add these lab records to `/etc/hosts` on each VM, merging rather than overwriting existing entries:
+
+```text
+10.77.10.11 admin01.lab.test admin01
+10.77.20.11 app01.lab.test app01
+10.77.30.11 storage01.lab.test storage01
+```
+
+### Verification and fault
+
+Switch: `show vlan brief`, `show interfaces trunk`, `show interfaces GigabitEthernet1/0/2 switchport`, `show mac address-table dynamic`. Router: `show ip interface brief`, `show ip route`, `show arp`. Linux: `ip route`, `ip neigh`, `ping -c 3 10.77.20.1`, `ping -c 3 10.77.30.11`, `getent hosts storage01`.
+
+Instructor temporarily removes VLAN 20 from the R620 trunk with `switchport trunk allowed vlan remove 20`. Student must distinguish this from a wrong guest gateway. Restore with `switchport trunk allowed vlan add 20`. Do this only in the scheduled lab window; it affects all lab VMs in that VLAN.
+
+**Pass:** explain ARP for the gateway, tagging on the trunk, router lookup, and forwarding to the destination VLAN. Verify cross-VLAN access and reboot one guest to prove persistent IP settings. After validation, save both Cisco configurations with `copy running-config startup-config`. **Rollback:** restore the reviewed prior port and subinterface configuration from console; restore guest settings using its baseline snapshot or recorded NetworkManager profile.
+
+## 9 Lab 3 Linux users services and package administration
+
+**Task:** operate an existing web service using an accountable administrator account. Time: 3 hours.
+
+Commands below are run as root or with sudo in app01. Offline students use the preinstalled packages; the instructor verifies repository access before asking them to practise installation.
+
+```bash
+useradd -m trainee
+passwd trainee
+usermod -aG wheel trainee
+id trainee
+dnf repolist
+rpm -q httpd
+# Only when a working approved package source is available:
+dnf install -y httpd
+printf 'NIT lab service is healthy\n' > /var/www/html/index.html
+restorecon -Rv /var/www/html
+systemctl enable --now httpd
+systemctl status httpd --no-pager
+ss -lntp
+curl -f http://127.0.0.1/
+journalctl -u httpd --since '-15 minutes' --no-pager
+```
+
+From a new session, log in as trainee and prove `sudo -v` works. Keep the instructor recovery account available. Explain service enabled versus active, RPM package versus DNF repository, process versus listening socket, ownership versus permissions, and log evidence versus an assumption.
+
+The initial remote HTTP test may fail if firewalld has no HTTP rule. Keep the local test as the baseline and complete remote exposure in Lab 6. This is an expected dependency, not a reason to disable the firewall.
+
+**Fault:** instructor stops httpd with `systemctl stop httpd`. Student receives only “the local service is unavailable.” They inspect status, logs and socket state, then start it. A second round adds a syntax error to a backed-up Apache configuration; `httpd -t` must detect it before restart.
+
+**Pass:** valid sudo session, HTTP response locally, enabled service after reboot, and correct diagnosis in both rounds. **Rollback:** restore the backed-up Apache file, run `httpd -t`, restart; remove only the dedicated trainee account if resetting the VM.
+
+## 10 Lab 4 Local storage LVM and persistent mounts
+
+**Task:** add application capacity without touching the OS disk. Time: 3–4 hours.
+
+The following destructive commands apply only to the assigned blank 8 GiB virtual disk in app01. Xen guests may expose it as `/dev/xvdb`; other names are possible. Do not assume the name or copy these commands onto the R620 host.
+
+```bash
+lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINTS
+findmnt /
+findmnt /boot
+wipefs -n /dev/xvdb
+```
+
+Student and instructor compare the XO disk assignment with `lsblk`. The disk must be the blank training disk, contain no required signatures, and have no mounted children. Replace `/dev/xvdb` below only after that verification. Whole-disk PVs are used to avoid a partitioning dependency in this lab.
+
+```bash
+pvcreate /dev/xvdb
+vgcreate labvg /dev/xvdb
+lvcreate -L 2G -n applv labvg
+mkfs.xfs /dev/labvg/applv
+mkdir -p /srv/labdata
+cp -a /etc/fstab /root/fstab.pre-lab
+blkid /dev/labvg/applv
+```
+
+Copy the actual filesystem UUID into a new `/etc/fstab` line:
+
+```text
+UUID=REPLACE_WITH_ACTUAL_UUID /srv/labdata xfs defaults 0 0
+```
+
+```bash
+systemctl daemon-reload
+findmnt --verify --verbose
+mount /srv/labdata
+findmnt /srv/labdata
+df -hT /srv/labdata
+printf 'persistent application data\n' > /srv/labdata/proof.txt
+pvs
+vgs
+lvs
+```
+
+Reboot the assigned VM from its console and verify the mount and proof file. Then grow the LV and mounted XFS filesystem:
+
+```bash
+lvextend -L +1G /dev/labvg/applv
+xfs_growfs /srv/labdata
+lvs
+df -hT /srv/labdata
+```
+
+Students explain physical volume, volume group, logical volume, filesystem and mountpoint separately. Growing the LV and growing the filesystem are distinct operations. XFS does not support shrinking; do not attempt `lvreduce` on this filesystem.
+
+**Bounded fault:** instructor uses `fallocate -l 2400M /srv/labdata/lab-fill.bin` on the approximately 3 GiB lab filesystem only after checking its free space. This should create high utilization while retaining some headroom; adjust downward if necessary. Student investigates `df -h`, `df -i`, and `du -xhd1 /srv/labdata`, distinguishes blocks from inodes, and removes only the designated fill file after confirming it is disposable. Never fill `/` or a host storage repository.
+
+**Pass:** persistent mount, preserved proof data, correct growth, safe capacity diagnosis. **Rollback:** remove lab-fill.bin; use the clean VM reset snapshot for complete teardown. Before reverting, copy any evidence outside the VM. Do not remove an LV until all dependent mounts and applications are handled.
+
+## 11 Lab 5 Shared storage and restore
+
+**Task:** provide a restricted NFS share, back up data, and prove recovery. Time: 4 hours.
+
+On storage01 as root, after confirming `nfs-utils` is installed:
+
+```bash
+mkdir -p /srv/nfs/team
+chmod 755 /srv/nfs /srv/nfs/team
+printf 'shared reference document\n' > /srv/nfs/team/reference.txt
+chmod 644 /srv/nfs/team/reference.txt
+```
+
+Create `/etc/exports.d/nit-lab.exports` with the actual app01 address for that pair:
+
+```text
+/srv/nfs/team 10.77.20.11(ro,sync,root_squash)
+```
+
+```bash
+systemctl enable --now nfs-server
+exportfs -rav
+exportfs -v
+systemctl enable --now firewalld
+firewall-cmd --get-active-zones
+```
+
+Use the zone containing storage01's lab NIC in the next command. This example assumes `public`:
+
+```bash
+firewall-cmd --zone=public --permanent --add-rich-rule='rule family="ipv4" source address="10.77.20.11/32" port port="2049" protocol="tcp" accept'
+firewall-cmd --reload
+```
+
+This exercise uses NFSv4 over TCP 2049. Do not open rpcbind and mountd simply to make an NFSv3 workflow work. Test the chosen server and client during preparation. Inspect AVCs if SELinux blocks the export; consult the distribution's NFS policy rather than disabling SELinux.
+
+On app01:
+
+```bash
+mkdir -p /mnt/team
+mount -t nfs -o vers=4,proto=tcp,ro storage01.lab.test:/srv/nfs/team /mnt/team
+cat /mnt/team/reference.txt
+findmnt /mnt/team
+```
+
+Add a persistent mount if the initial test succeeds:
+
+```text
+storage01.lab.test:/srv/nfs/team /mnt/team nfs ro,vers=4,proto=tcp,_netdev,nofail,x-systemd.automount 0 0
+```
+
+Reload systemd, unmount the temporary mount, reboot, then read the file to trigger the automount. `nofail` is chosen because this demonstration share is not required to boot. Discuss why an application-critical share may need a different dependency policy. This read-only exercise is not a database storage recommendation.
+
+### File backup rehearsal
+
+On app01, back up the Lab 4 data to a separate local directory for a small file-recovery demonstration:
+
+```bash
+mkdir -p /root/lab-file-backup
+rsync -a /srv/labdata/ /root/lab-file-backup/
+sha256sum /srv/labdata/proof.txt /root/lab-file-backup/proof.txt
+```
+
+Delete only `/srv/labdata/proof.txt`, restore it with `rsync -a /root/lab-file-backup/proof.txt /srv/labdata/`, and compare hashes. Explain that a same-VM backup cannot survive loss of that VM.
+
+### VM recovery exercise
+
+1. In XO, configure a backup job for app01 to the instructor's external backup destination. Use a backup type available in the installed XO edition or build. Run it and inspect the job result.
+2. Record the backup completion time and the expected recovery point. Create a post-backup marker file in app01 to illustrate potential data loss.
+3. Restore the backup as a separate VM. Before booting, disconnect its VIF or attach it to an isolated network so it cannot duplicate the original IP.
+4. Test through the restored VM's console: filesystem data, service configuration and local HTTP response. Then assign a unique IP and attach it to the appropriate lab VLAN for an end-to-end client test.
+5. Measure elapsed recovery time and record which marker files exist. Reconcile the observed result with the backup time.
+6. Keep the original VM until the instructor validates recovery. Shut down or remove the restore test afterward according to the reset plan.
+
+**Pass:** demonstrate file and VM recovery, explain RPO as tolerable data loss and RTO as tolerable recovery time, and identify host-loss limitations. A snapshot on the original storage is useful for reset but is not an independent backup. **Rollback:** restore the original NFS export and firewall state; unmount and remove the lab mount entry; clean up only the restored test VM.
+
+## 12 Lab 6 Security and compliance
+
+**Task:** enforce a small written security policy and prove that it works. Time: 4–5 hours.
+
+Policy: named accounts, sudo accountability, key-based administration, no direct root SSH, SELinux enforcing, only required service exposure, records of changes, and current patch evidence. This exercise demonstrates policy controls; it does not certify compliance with any regulatory framework.
+
+### SSH and least privilege
+
+1. Create an Ed25519 key as the student on admin01 using `ssh-keygen -t ed25519`, with a passphrase. Use `ssh-copy-id trainee@app01` while password access is temporarily allowed.
+2. Confirm key login from a second session and confirm `sudo -v` there.
+3. From the app01 console, back up SSH configuration. Inspect `/etc/ssh/sshd_config` and its included files; competing settings can change effective behavior.
+4. Add or adjust an appropriate configuration file with `PermitRootLogin no` and `PasswordAuthentication no`. Set `KbdInteractiveAuthentication no` if the lab uses no interactive PAM or MFA authentication. Do not apply that setting to a real MFA environment without reviewing its design.
+5. Validate with `sshd -t` and examine effective values with `sshd -T`. If Match blocks are used, validate with the applicable connection context too.
+6. Reload sshd only after validation. Keep the console and existing session until a new key login succeeds and direct root login is denied.
+
+Wheel membership provides broad administrative sudo access. Students must state that fact; it is not fine-grained least privilege. As an extra task, create a separate observer role allowed to run only a specific read-only status command. Edit sudoers with `visudo`, validate with `visudo -c`, and prove an unrelated privileged command is denied. Do not grant wildcard write commands or unrestricted editors as a supposed read-only role.
+
+### Firewall policy
+
+On app01, select the active NIC zone. The examples assume public and retain SSH recovery access during the lab:
+
+```bash
+systemctl enable --now firewalld
+firewall-cmd --get-active-zones
+firewall-cmd --zone=public --list-all
+firewall-cmd --zone=public --permanent --add-service=ssh
+firewall-cmd --zone=public --permanent --remove-service=http
+firewall-cmd --zone=public --permanent --add-rich-rule='rule family="ipv4" source address="10.77.10.0/24" service name="http" accept'
+firewall-cmd --reload
+```
+
+Inspect the full ruleset for any broader accept rules or alternate zones before claiming restriction. From admin01, `curl -f --max-time 5 http://10.77.20.11/` should succeed. From storage01 it should fail, while local HTTP on app01 still works. Verify SSH and HTTP again after reboot. IPv6 and other interfaces need their own review if present; the IPv4 rule does not define a complete dual-stack security policy.
+
+### SELinux incident
+
+```bash
+getenforce
+ls -lZ /var/www/html/index.html
+ausearch -m AVC -ts recent
+```
+
+Instructor temporarily mislabels only the training index file:
+
+```bash
+chcon -t user_home_t /var/www/html/index.html
+```
+
+Student tests the service, inspects HTTP and audit logs, compares Unix permissions with the SELinux context, and repairs the label with:
+
+```bash
+restorecon -v /var/www/html/index.html
+```
+
+For a custom web directory, demonstrate the difference between defining persistent policy and applying labels:
+
+```bash
+mkdir -p /srv/labweb
+semanage fcontext -a -t httpd_sys_content_t '/srv/labweb(/.*)?'
+restorecon -Rv /srv/labweb
+```
+
+If the rule already exists, inspect it and use the appropriate modification operation. Do not generate an allow policy blindly from every AVC.
+
+### Router filtering extension
+
+After all baseline connectivity tests, practise a narrow IOS extended ACL blocking new storage-VLAN traffic toward the admin subnet. This is an optional lab policy, not a full stateful firewall configuration.
+
+```text
+configure terminal
+ip access-list extended LAB_STORAGE_IN
+ deny ip 10.77.30.0 0.0.0.255 10.77.10.0 0.0.0.255
+ permit ip any any
+exit
+interface GigabitEthernet0/0.30
+ ip access-group LAB_STORAGE_IN in
+end
+show access-lists LAB_STORAGE_IN
+```
+
+Test storage01 to admin01 and examine counters. The ACL also blocks replies from storage to admin; it is stateless and direction matters. It permits other traffic, including storage to app, so it does not replace app01's host firewall. Remove the interface binding after the exercise and restore the baseline. Save the intended final policy only after review.
+
+**Pass:** accountable login, verified denied access, working authorized HTTP, SELinux repaired while enforcing, and a policy checklist with evidence. **Rollback:** restore backed-up SSH configuration from console, validate and reload; remove only introduced rich rules; restore file contexts; remove the router ACL binding. Never use “disable SELinux and the firewall” as the final solution.
+
+## 13 Lab 7 Monitoring and bottleneck diagnosis
+
+**Task:** measure the environment, create bounded load, and distinguish symptoms from causes. Time: 4 hours.
+
+Capture an idle baseline in the assigned guest:
+
+```bash
+uptime
+free -h
+df -hT
+df -i
+vmstat 1 10
+iostat -xz 1 10
+sar -n DEV 1 10
+ps -eo pid,comm,%cpu,%mem --sort=-%cpu | head
+ip -s link
+curl -o /dev/null -s -w 'code=%{http_code} total=%{time_total}\n' http://127.0.0.1/
+```
+
+Interpret repeated interval samples; some first reports are averages since boot. Explain that Linux cache is useful memory and low free memory alone does not prove pressure. Load average includes runnable and uninterruptible tasks; it is not CPU utilization. Disk latency, queueing and throughput must be interpreted together. Guest disk metrics do not identify a physical drive fault by themselves. Virtual CPU steal time can suggest host scheduling contention.
+
+### Bounded CPU exercise
+
+Run one process in a dedicated low-vCPU lab VM, scheduled so other students are not simultaneously loading the host:
+
+```bash
+timeout 30s yes > /dev/null &
+top
+```
+
+Capture before, during and after samples. Student identifies the PID, user, CPU use, business impact and automatic timeout. Do not launch a fork bomb or an unbounded stress loop.
+
+### Network exercise
+
+Use ordinary HTTP as the minimum functional test. If `iperf3` was preinstalled, run `iperf3 -s -1` on an authorized receiving VM and `iperf3 -c RECEIVER_IP -t 10 -P 1` on its client. Temporarily allow TCP 5201 only from that client in the receiving VM's active zone, then remove the rule. Substitute an actual address; do not run the placeholder literally.
+
+Compare same-host same-VLAN traffic with traffic routed between VLANs. Same-host traffic may stay inside the virtual switch; it does not necessarily measure the physical NIC. Report Mbps, direction, topology, retransmissions and time window. Do not promise line-rate performance without measurement.
+
+### Packet inspection
+
+Run in an assigned guest, with its actual interface and test-client address:
+
+```bash
+tcpdump -ni enX0 -c 30 'host 10.77.10.11 and tcp port 80'
+```
+
+Generate HTTP requests from the client while capturing. Explain SYN, SYN-ACK, ACK, and the difference between a timeout, connection refusal and an HTTP error. For VLAN tags, capture at a suitable physical trunk or switch mirror point; a guest on an XO VLAN-backed network normally sees untagged traffic. Do not treat absence of tags in the guest capture as proof the trunk is wrong.
+
+### Monitoring plan
+
+Define a service check once per minute, CPU warning above 85 percent for five minutes, filesystem warning at 80 percent and critical at 90 percent, and notification for backup failure. These are proposed lab thresholds, not universal production limits. Specify owner, action, recovery condition, noise suppression and escalation. Use guest and XO graphs plus a timed evidence sheet; add a dedicated monitoring system in the extension course.
+
+**Pass:** identify CPU load from measurements, correctly diagnose a capacity scenario, and distinguish service failure from network failure. **Rollback:** allow bounded jobs to end, confirm their PIDs are gone, remove temporary firewall exposure and discard only disposable captures or load files.
+
+## 14 Lab 8 Hardware break fix and lifecycle management
+
+**Task:** perform a defensible hardware diagnosis and replacement workflow. Time: 4–6 hours including supervised rotation.
+
+Use the R620 for inventory and health observation. Use a spare powered-down server for repeated component work. A drawing or tabletop can teach the sequence, but mark it as simulation; it does not prove hands-on replacement competence.
+
+### Hardware service sequence
+
+1. Receive a ticket: intermittent memory error, degraded RAID, PSU redundancy lost, high temperature, or link errors. Determine impacted workloads and whether the machine is still safely operational.
+2. Collect event logs, diagnostic results, slot or bay identity, and timestamps. Match the component to the physical label; an OS disk name is not automatically a chassis bay number.
+3. Confirm the replacement's exact compatibility. Record part number, capacity, speed, controller or backplane requirements, memory population rules, firmware prerequisites, and any support constraints.
+4. Plan downtime, data protection, evacuation or VM shutdown, power isolation, ESD handling, tools and rollback. With one host there is no automatic workload evacuation to another host.
+5. On the spare system, shut down cleanly. For internal component work, disconnect all power sources, including both PSU cords, and follow the service manual's discharge and handling instructions. Never open a PSU enclosure.
+6. Practise removing and reinstalling an assigned compatible DIMM under supervision. Photograph the slot label before and after. Follow the R620 population rules rather than guessing from empty slots.
+7. Practise drive-carrier identification on a spare disk. Discuss array state, redundancy, controller alarms and rebuild risk. Do not pull an active R620 drive as a failure exercise. Hot-swap capability depends on the actual component and configuration.
+8. Identify PSU type and redundancy. Practise replacement only on the spare setup following its manual. A redundant system is not proof that any PSU can be removed safely at any time.
+9. Use a spare platform for CPU and motherboard replacement practice only when correct parts, thermal compound, torque or socket instructions and qualified supervision are available. Otherwise perform the procedure as a tabletop and explicitly leave hands-on certification incomplete.
+10. Reassemble, inspect cabling and airflow, boot, run diagnostics, compare memory and component inventory, review new logs, and verify guest services after returning the machine to operation.
+
+The R620 lab does not by itself provide an NVMe replacement exercise. Identify your actual storage interface and chassis capabilities. Add an NVMe-capable spare platform or separate training hardware to demonstrate that skill.
+
+### Drivers and firmware
+
+In a Linux guest, use `lspci -nnk`, `lsmod`, `modinfo MODULE_NAME`, and `journalctl -k -b` to identify the bound driver and kernel messages. Replace MODULE_NAME with the discovered driver. On supported physical Linux equipment, use `ethtool -i INTERFACE` where available to inspect NIC driver and firmware information. Virtual guest driver evidence is not the physical NIC's firmware inventory.
+
+Prepare a firmware change request: exact model and service tag, current version, vendor target version, compatibility evidence, supported upgrade order, release notes, backup, stable power, maintenance window, verification and vendor-supported rollback limitations. Do not flash the shared R620 during a mock test. A rollback can require a forward fix, replacement or recovery procedure; do not assume firmware always permits downgrade.
+
+### Rack and cable work
+
+If a rated rack and correct rails exist, perform supervised mounting according to the server and rail instructions. Use adequate lifting assistance; inspect rail engagement, airflow, power load, PDU rating, strain relief and service clearance. Label rack units, device names, cable IDs and ports. If no rack exists, make a rack-elevation and cable plan, but mark rack installation as unassessed physical work.
+
+### Lifecycle register
+
+Create one record for the router, switch, server, firewall and AP roles. For devices not owned, use an explicit hypothetical record. Include exact product ID, software version, vendor lifecycle notice URL, last software maintenance date, last support date, entitlement, operational risk, compensating controls, target replacement, budget owner and migration test.
+
+Students must look up lifecycle notices for the exact PID and software release. EOL announcement, end of sale, end of software maintenance and end of support are different milestones. This manual does not assert current support dates for your unidentified Cisco purchases.
+
+**Pass:** correct diagnosis from a supplied log, safe DIMM procedure on a spare system, compatible part selection and a reviewed lifecycle plan. Mark drive, PSU, CPU, board, NVMe and rack tasks individually as performed, simulated or not assessed. **Rollback:** reinstall known-good compatible parts on the spare machine and verify diagnostics; retain the live R620 configuration throughout observation.
+
+## 15 Lab 9 New stack and development debugging environment
+
+**Task:** deploy an application from a clean VM and give a developer a reproducible failure report. Time: 4–5 hours.
+
+Create debug01 from the clean template, attach its VIF to LAB-APP-20, and give it the unique address and hostname recorded for the pair. Use a non-root service account, a versioned source directory and systemd. A small standard-library Python HTTP application avoids external downloads in this offline lab.
+
+As root in debug01:
+
+```bash
+useradd --system --home-dir /opt/nit-debug --shell /sbin/nologin nitdebug
+mkdir -p /opt/nit-debug/releases/v1
+```
+
+Create `/opt/nit-debug/releases/v1/server.py`:
+
+```python
+import os
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == "/health":
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"healthy version v1\n")
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+port = int(os.environ.get("APP_PORT", "8080"))
+HTTPServer(("0.0.0.0", port), Handler).serve_forever()
+```
+
+```bash
+chown -R root:root /opt/nit-debug
+chmod 755 /opt/nit-debug /opt/nit-debug/releases /opt/nit-debug/releases/v1
+chmod 644 /opt/nit-debug/releases/v1/server.py
+ln -s releases/v1 /opt/nit-debug/current
+```
+
+Create `/etc/systemd/system/nit-debug.service`:
+
+```ini
+[Unit]
+Description=NIT development debugging lab service
+After=network.target
+
+[Service]
+User=nitdebug
+Group=nitdebug
+Environment=APP_PORT=8080
+WorkingDirectory=/opt/nit-debug/current
+ExecStart=/usr/bin/python3 /opt/nit-debug/current/server.py
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+systemctl daemon-reload
+systemctl enable --now nit-debug
+systemctl status nit-debug --no-pager
+curl -f http://127.0.0.1:8080/health
+ss -lntp
+journalctl -u nit-debug -n 30 --no-pager
+```
+
+Open TCP 8080 only from the admin subnet using a source-scoped firewalld rich rule, as practised in Lab 6. Inspect the active zone first. Test `/health` from admin01, verify `/missing` returns 404, and reboot to prove persistence. This minimal server is a training application, not a production web architecture or an implementation of strong application isolation.
+
+### Reproduce a development issue
+
+Instructor changes only the unit's `Environment=APP_PORT=8080` to `Environment=APP_PORT=invalid`, reloads systemd and restarts the service. Student receives “the new build will not start.” They must inspect the unit, effective environment and journal, identify the conversion error, and provide reproduction steps. Restore APP_PORT=8080, reload and restart, reset failed state if needed, then verify health. Record the Python and OS versions and the release checksum using `sha256sum`.
+
+### Repeatable deployment and handoff
+
+Student writes a shell checklist or script that installs the same files on another clean guest, checks required users and directories, validates service startup and HTTP response, and avoids duplicating users or symlinks on a second run. Perform the second run; do not assume repeatability because the first run passed. Ansible can be introduced after students can explain the underlying operations.
+
+Developer handoff must include: release identifier, sanitized environment values, reproduction command, observed and expected result, log excerpt, root cause hypothesis, successful fix, test result and owner of the next action. Do not grant developer root access simply to avoid investigating the issue.
+
+### Team practice
+
+Assign operator, developer, team lead and product owner roles. The developer requests a new feature while an outage is active. The operator reports impact and proposes restoring service first; the product owner agrees the priority and scope. Record the decision, owner and deadline. Rotate roles.
+
+Every student raises one blocker with evidence, such as no approved package source, no spare hardware, conflicting change window or insufficient disk space. They propose options, state what they can safely continue, and ask the responsible lead for a decision. Do not treat “proactively eliminate impediments” as permission to bypass change controls.
+
+**Pass:** build from a clean guest, second-run success, persistence, diagnosis from logs, and a reproducible handoff. **Rollback:** stop and disable the lab unit, restore the prior source or release symlink and unit, reload systemd, remove only the dedicated firewall rule, or reset the assigned debug VM.
+
+## 16 Lab 10 Instructor incident bank
+
+Use one fault at a time for early training, then two related faults in the final assessment. Verify the baseline first. Record the injected change, affected resources, expected diagnosis, and exact reset. Keep this section from students during an unseen assessment.
+
+| Incident | Safe injection location | Expected investigation | Recovery |
+|---|---|---|---|
+| Wrong gateway | Assigned guest NetworkManager profile | Local subnet works; route and gateway tests fail | Restore recorded gateway and reactivate from console |
+| Missing VLAN | Scheduled R620 lab trunk only | Several APP guests fail; switch trunk evidence | Add VLAN 20 back |
+| Bad name resolution | One assigned guest hosts entry | IP succeeds; getent points to wrong address | Restore that hosts entry |
+| Service stopped | app01 | No listener; inactive unit | Start service and verify transaction |
+| Apache syntax error | Backed-up lab config | httpd -t and journal identify line | Restore valid config, validate, restart |
+| HTTP blocked | app01 lab rich rule | Local HTTP works; remote times out; zone evidence | Restore approved HTTP rule |
+| Wrong SELinux label | Training index file only | Permissions look normal; AVC and label evidence | restorecon on affected file |
+| Data filesystem nearly full | Assigned disposable lab-fill.bin | df, du, inode check; application impact | Remove designated file or approved capacity expansion |
+| NFS export wrong client | Pair-specific export file | Server export differs from actual client IP | Correct export, exportfs -rav |
+| CPU saturation | 30-second bounded process in one VM | PID and interval metrics explain CPU | Wait for timeout or stop only that PID |
+| Invalid app environment | debug01 unit | Journal traceback and effective unit | Restore valid port, reload, restart |
+| Degraded RAID or failed DIMM | Supplied event log, no live failure | Correct bay or slot, data protection and maintenance plan | Tabletop replacement and validation |
+
+A network timeout does not prove a firewall fault; a refused connection does not prove the service is healthy. Require students to collect discriminating evidence. Do not accept a list of commands with no conclusion.
+
+### Incident report template
+
+```text
+Incident ID and operator
+Start and end time
+User symptom and business impact
+Affected scope
+Recent relevant changes
+Two hypotheses and tests
+Key evidence
+Root cause
+Restoration action and rollback
+End-to-end verification
+Persistence check
+Prevention or monitoring improvement
+Owner and remaining risk
+```
+
+### Change request template
+
+```text
+Change title and owner
+Purpose and expected outcome
+Assets and users affected
+Current state and prerequisite evidence
+Approved window and coordinator
+Implementation steps
+Validation and success criteria
+Abort criteria and rollback
+Backup or recovery reference
+Communication and handoff
+Actual result and completion time
+```
+
+## 17 Final mock test
+
+Use a fresh assigned VM and a different unique address or application label from the rehearsed exercise. Permit official documentation and man pages, but no trainer prompting or another student's configuration. Keep the instructor answer key separate. Grade individual work even when instruction was performed in pairs.
+
+### Candidate brief
+
+You are supporting an internal development service. Deploy it with accountable administration, persistent storage and restricted network access. Resolve assigned incidents, restore data, and hand off the service. Explain your work to the development lead. The R620 and shared management services must remain available.
+
+### Four hour practical
+
+| Time | Task | Points |
+|---|---|---:|
+| 0–35 min | Inventory assigned resources, validate guest IP and shared VLAN path | 15 |
+| 35–80 min | Named admin, persistent web service and reboot proof | 15 |
+| 80–120 min | Assigned blank disk, LVM, persistent mount and data proof | 15 |
+| 120–150 min | Authorized and denied access, SELinux and SSH evidence | 15 |
+| 150–185 min | Diagnose two assigned faults with evidence | 20 |
+| 185–210 min | Restore designated file and explain VM restore evidence from Lab 5 | 10 |
+| 210–240 min | Incident report, change handoff, hardware or lifecycle scenario | 10 |
+| | Total | 100 |
+
+XO full-VM restore can be slow and resource-dependent; it is mandatory in Lab 5 but not forced into the 25-minute exam recovery slot. If the assessor has sufficient time and capacity, extend the assessment and run another VM restore.
+
+**Pass standard:** at least 80/100, at least half of the points in each domain, and all mandatory gates below. A high total does not override a critical gap.
+
+- Correct target disk confirmed before formatting.
+- Management access preserved and no unauthorized shared-host change.
+- Required service and filesystem survive a reboot.
+- SELinux remains enforcing and unauthorized access test fails as intended.
+- Each incident has evidence supporting the diagnosis and a verified recovery.
+- Restore proof is present; describing a backup without testing recovery is insufficient.
+- Student explains their own work without inventing production experience.
+
+Stop the assessment for formatting an unassigned disk, exposing credentials, disabling safeguards as the unexplained final fix, or altering live shared infrastructure outside the agreed boundary. Restore the environment and assign remediation before reassessment.
+
+### Scoring method
+
+For each domain, award approximately half its points for working behavior, a quarter for diagnosis and explanation, and a quarter for persistent or recovery evidence and documentation. Partial credit applies to a sound diagnosis even if the student runs out of time, but mandatory gates still apply. Keep assessor notes on prompting, unsafe actions and unverified claims.
+
+## 18 Interview practice with expected answer elements
+
+Conduct a 45–60 minute interview after the practical. Use follow-up questions tied to the candidate's actual evidence. The answer elements below guide the assessor; they are not scripts to memorize.
+
+| Question | Expected answer elements |
+|---|---|
+| SSH fails but ping works. What do you inspect? | IP reachability differs from TCP service; route, port, listener, sshd logs, firewall, credentials and key policy |
+| A site works locally but not remotely. What next? | Listening address, source and path, TCP test or capture, active firewall zone, route and VLAN evidence |
+| Why can two guests communicate without the router? | Same-subnet traffic uses L2 switching; same-host traffic may remain virtual |
+| How does VLAN 20 reach VLAN 30? | Guest gateway ARP, trunk tag, router subinterface and route, destination VLAN and ARP |
+| Ping by IP works but name access fails. Why? | hosts or DNS lookup; getent follows configured resolution; wrong answer versus unreachable resolver |
+| Why is a mount missing after reboot? | fstab UUID, syntax, filesystem, dependencies, NetworkManager or network readiness for remote storage |
+| Why did growing an LV not increase df output? | Filesystem still needs growth; confirm filesystem type; XFS grows but cannot shrink |
+| df shows full but du looks small. How can that happen? | Deleted open files, mount obscuring data, permissions, reserved space and differing scope; inspect before deletion |
+| Is low free RAM a problem? | Available memory, cache, swap activity, pressure and workload symptoms; compare interval samples |
+| What does high load average prove? | Demand from runnable or uninterruptible tasks; inspect CPU, I/O and process states |
+| A VM is slow. Is the physical disk failing? | Guest metrics alone insufficient; correlate XO, host storage, controller events and concurrent workloads |
+| An HTTP file is readable but Apache returns denied access. Why? | Directory traversal permissions, configuration, SELinux context and AVCs; repair persistently |
+| How would you replace a failed RAID member? | Verify controller state and exact bay, backups, compatible replacement, change plan, rebuild monitoring; no blind pull |
+| How do you approach a DIMM error? | Event and slot evidence, population rules, compatible part, outage, ESD, diagnostics and post-change verification |
+| Is firmware rollback always possible? | Vendor-specific limitations; compatibility, release notes, recovery path and forward-fix option |
+| Snapshot, RAID and backup: what differs? | Reset point, availability from redundancy, independent recoverable copy; failure domains matter |
+| What are RPO and RTO? | Data-loss and recovery-time targets; measured restore reconciles them with real capability |
+| Can this one-host lab demonstrate HA? | No host failover; describe additional host, network, storage and supported design requirements |
+| How do you plan EOL mitigation? | Exact lifecycle notice, support and patch risk, inventory, replacement owner, migration and rollback tests |
+| An urgent feature conflicts with an outage. What do you do? | Communicate impact, propose restoration priority, obtain scope decision, document owner and follow-up |
+| What did you do when the developer's service failed? | Actual lab symptom, journal evidence, environment mismatch, reproduction, fix and test |
+
+Score six categories from 0 to 4: Linux, networking, storage, security, diagnosis, and communication. A 0 is no useful answer; 1 is memorized terms; 2 is partial reasoning; 3 is an accurate sequence; 4 is accurate reasoning tied to observed evidence and tradeoffs. Require at least 18/24 and no category below 2. A candidate who passes the lab but cannot explain it needs additional practice.
+
+## 19 Remediation and readiness reporting
+
+Do not issue a broad job-ready label for attendance. Report competence by domain and the conditions under which it was demonstrated.
+
+| Assessment result | Next action |
+|---|---|
+| Practical and interview pass; all gates met | Apply for roles matching demonstrated scope; continue weekly unseen incidents |
+| 65–79 practical or one weak interview domain | Repeat failed modules for 3–5 focused sessions; reassess with different fault |
+| Below 65 or frequent command prompting | Return to foundations and use the four week path |
+| Safety gate failed | Review boundaries, supervised repetition and a fresh assessment |
+| Hardware, AP or appliance work only simulated | Record the gap and arrange supervised physical practice |
+
+Give each student a readiness record listing scores, independent tasks, prompted tasks, simulated tasks and outstanding gaps. Use “demonstrated in a training lab” where appropriate. For a role demanding strong working experience, lab competence should support an application, not be represented as years of production work.
+
+### Portfolio checklist
+
+- Inventory and labeled port map.
+- Topology and unique IP allocation.
+- Sanitized router and switch configuration with verification.
+- Persistent Linux user, service and storage evidence.
+- Firewall allow and deny tests and SELinux diagnosis.
+- Baseline and bounded-load performance interpretation.
+- Three incident reports covering network, storage and service or security faults.
+- File and VM restore evidence with measured time and backup limitations.
+- Development environment handoff and repeatable deployment evidence.
+- Hardware procedure record distinguishing performed and simulated work.
+- Lifecycle register, change request and blocker-resolution record.
+
+Example honest interview statement: “In an NIT Academy lab, I built VLAN-backed Linux VMs on XCP-ng, configured Cisco inter-VLAN routing, managed LVM and NFS, restricted service access, diagnosed injected incidents and tested recovery. My evidence includes the configurations, logs and restore results. My hands-on hardware work covered the components listed in my assessment; other procedures were simulated.”
+
+## 20 Extensions needed for broader job coverage
+
+Start with your existing equipment. Add resources only when a defined training gap requires them.
+
+| Gap | Extension exercise | Evidence required |
+|---|---|---|
+| Stateful hardware firewall | Borrow or use an authorized appliance; zones, policy, NAT, logs, backup and restore | Sessions, allowed and denied traffic, recoverable configuration |
+| Wireless AP operation | Use an isolated AP; SSID to VLAN, authentication, channel and client diagnosis | Client connection, VLAN mapping and troubleshooting record |
+| Multiple routers | Add an approved virtual or physical router and routed link; static routing then OSPF | Adjacency, learned prefixes and link-failure diagnosis |
+| Multi-switch operation | Add compatible hardware; trunks, STP, LACP, stacking only if supported | Failover behavior, port roles and cable map |
+| Host resilience | Add a second supported host and reviewed storage/network design | Actual workload recovery or migration and measured outage |
+| Independent backup failure domain | External destination with sufficient retention and access control | Restore after loss of the original VM or simulated source unavailability |
+| NVMe and broader component replacement | Spare compatible hardware and supervised parts | Component-specific before and after diagnostics |
+| Central monitoring and logs | Dedicated monitoring and log server | Alert, incident acknowledgement, recovery and noise tuning |
+| Fleet automation | Version-controlled Ansible or scripts on several guests | Repeatable deployment, drift detection and rollback |
+
+An emulator can provide routing practice if lawful images and access are available. Mark simulated outcomes accurately. These additions extend training; they should not all be squeezed into the first week.
+
+## 21 Instructor source references
+
+These vendor references support the technical approach. Configurations in this manual are authored for the isolated example lab and need a pilot on the actual equipment. Consult the current guide matching the installed release before a real change.
+
+1. [Cisco inter-VLAN routing using an external router](https://www.cisco.com/c/en/us/support/docs/lan-switching/inter-vlan-routing/14976-50.html) — router subinterfaces and 802.1Q design.
+2. [Cisco Catalyst 2960 and 2960-S VLAN trunks](https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst2960/software/release/15-2_2_e/configuration/guide/b_1522e_2960_2960c_2960s_2960sf_2960p_cg/b_1522e_2960_2960c_2960s_2960sf_2960p_cg_chapter_01101.html) — trunk membership and native VLAN considerations.
+3. [XCP-ng networking](https://docs.xcp-ng.org/networking/) — physical, virtual and VLAN network mapping.
+4. [Xen Orchestra backup features and settings](https://docs.xen-orchestra.com/backups-and-dr/backup-features-and-settings) — backup jobs, restore and health checks; feature availability depends on the installation.
+5. [Dell PowerEdge R620 Owner Manual](https://dl.dell.com/topicspdf/poweredge-r620_owners-manual_en-us.pdf) — servicing, memory population, components and power supplies. Use the sections matching your configuration.
+6. [RHEL 9 documentation](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9) — system settings, networking, firewalls and security guides. Rocky Linux users must also verify their package and release details.
+7. [RHEL 9 logical volumes](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html-single/configuring_and_managing_logical_volumes/index) — LVM objects, storage changes and filesystem considerations.
+8. [RHEL 9 SELinux application configuration](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/using_selinux/configuring-selinux-for-applications-and-services-with-non-standard-configurations_using-selinux) — persistent file labeling and service policy.
+9. [RHEL 9 performance monitoring overview](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/monitoring_and_managing_system_status_and_performance/overview-of-performance-monitoring-options) and [I/O performance factors](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/monitoring_and_managing_system_status_and_performance/factors-affecting-i-o-and-file-system-performance_monitoring-and-managing-system-status-and-performance) — monitoring tools and interpretation.
+
+The schedules, score thresholds, teaching scenarios and readiness recommendations are the proposed NIT Academy training design, not vendor certifications or promises of employment.
