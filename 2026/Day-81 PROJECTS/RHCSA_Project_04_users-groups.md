@@ -2,8 +2,8 @@
 
 ## The Exam Question:
 On Note1, perform the following user and group management tasks:
-1. Create a group named admins with a fixed GID of 3500
-2. Create a group named users
+1. Create a group named `admins` with a fixed GID of 3500
+2. Create a group named `users`
 3. Create the following user accounts with the specified requirements:
 ```bash
 harry
