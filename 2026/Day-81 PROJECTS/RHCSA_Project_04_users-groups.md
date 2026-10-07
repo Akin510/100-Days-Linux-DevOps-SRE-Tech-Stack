@@ -4,7 +4,7 @@
 > **Account:** `root`  
 > **Standard:** Keep SELinux enforcing and firewalld enabled. Persistent work must survive reboot.
 
-# 1. Exam Question
+# 1. Exam Question #4
 
 On Note1, perform the following user and group management tasks:
 1. Create a group named admins with a fixed GID of 3500
