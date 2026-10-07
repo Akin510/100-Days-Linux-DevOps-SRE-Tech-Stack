@@ -1,26 +1,21 @@
-# Linux Project 04: Identity and Administrative Group Provisioning
+# Exam Question #4 - Identity and Administrative Group Provisioning
 
-> **Platform:** Rocky Linux 9 VM in Xen Orchestra  
-> **Account:** `root`  
-> **Standard:** Keep SELinux enforcing and firewalld enabled. Persistent work must survive reboot.
-
-# 1. Exam Question #4
-
+## The Exam Question:
 On Note1, perform the following user and group management tasks:
 1. Create a group named admins with a fixed GID of 3500
 2. Create a group named users
 3. Create the following user accounts with the specified requirements:
-   -harry
+   - harry
     - Primary group `admins`
     - Secondary group `users`
     - User ID 3455
-   -natasha
+   - natasha
     - Supplementary groups: `admins` and `users`
     - User ID of 3456
-   -sarah
+   - sarah
     - Must not be a member of the `admins` group
     - Must not hav access to an interactive shell
-   -bruce
+   - bruce
     - Member of `admins` group
     - Home direcctory must be created explicitly
 4. Set the password for all created users to: `password`
