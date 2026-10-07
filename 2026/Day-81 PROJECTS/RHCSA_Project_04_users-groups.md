@@ -1,4 +1,4 @@
-# Exam Question #4 - Identity and Administrative Group Provisioning
+# Exam Question #4 - USER and GROUP Management
 
 ## The Exam Question:
 On Note1, perform the following user and group management tasks:
