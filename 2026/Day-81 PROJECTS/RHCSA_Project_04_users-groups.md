@@ -67,9 +67,7 @@ groupadd users
 ```bash
 #On the exam use 'help' to searh
 useradd -h
-# or as below
-useradd -h | less
-//primary
+
 ```
 Now, let us create harry's account:
 ```bash
@@ -101,15 +99,17 @@ useradd -s /sbin/nologin sarah
 ```bash
 #use useradd -h to find out about '-m' flag
 useradd -m -G admins bruce
+#r
+usermod -mG admins bruce
 ```
 ## Set the password for all created users to: `password`
 We have two ways to create passwords:
 ```bash
 # Option 1
-password harry
-password natasha
-password sarah
-password bruce
+passwd harry
+passwd natasha
+passwd sarah
+passwd bruce
 
 # Option 2
 echo "password" | passwd --stdin harry
@@ -117,8 +117,6 @@ echo "password" | passwd --stdin natasha
 echo "password" | passwd --stdin sarah
 echo "password" | passwd --stdin bruce
 
-# Option 3 - Adhoc Command meaning "A one line command - one liner"!
-for user in harry natasha sarah bruce: do echo "password" | passwd --stdin "$user; done
 ```
 
 ## Validate account data
@@ -136,11 +134,6 @@ grpck -r
 
 ### Step 5: Test Sarah’s restriction
 
-```bash
-su - sarah
-#or
-runuser -l sarah -c 'id'
-```
 
 ## Rollback or Cleanup
 ```bash
