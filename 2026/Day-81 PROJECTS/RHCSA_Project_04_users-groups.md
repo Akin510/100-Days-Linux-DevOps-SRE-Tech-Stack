@@ -1,65 +1,137 @@
-# NexusVentures Project 04: Identity and Administrative Group Provisioning
+# Linux Project 04: Identity and Administrative Group Provisioning
 
 > **Platform:** Rocky Linux 9 VM in Xen Orchestra  
 > **Account:** `root`  
 > **Standard:** Keep SELinux enforcing and firewalld enabled. Persistent work must survive reboot.
 
-## 1. Exam Task Converted to a Project
+# 1. Exam Question
 
-Create group `admin`; add `harry` and `natasha` as supplementary members; create `sarah` with `/sbin/nologin` and no `admin` membership; assign training passwords.
+On Note1, perform the following user and group management tasks:
+1. Create a group named admins with a fixed GID of 3500
+2. Create a group named users
+3. Create the following user accounts with the specified requirements:
+   -harry
+    - Primary group `admins`
+    - Secondary group `users`
+    - User ID 3455
+   -natasha
+    - Supplementary groups: `admins` and `users`
+    - User ID of 3456
+   -sarah
+    - Must not be a member of the `admins` group
+    - Must not hav access to an interactive shell
+   -bruce
+    - Member of `admins` group
+    - Home direcctory must be created explicitly
+4. Set the password for all created users to: `password`
 
-## 2. Business Scenario
-
-NexusVentures is onboarding two junior administrators and one noninteractive service identity.
-
-## 3. Learning Outcomes
-
-Students will plan the change, record the original state, implement the configuration, explain each command, validate the result, test reboot persistence where applicable, and document rollback.
-
-## 4. Safety and Prerequisites
-
-- Confirm the assigned VM with `hostnamectl` and `ip -brief address`.
-- Confirm the account with `whoami`; expected output is `root`.
-- Create a Xen Orchestra snapshot before disruptive work.
-- Save pre-change evidence under `/root/nexusventures-project04/`.
-
-
-## 5. Step-by-Step Solution
-
-### Step 1: Create the group
-
+# Exam Solution
+## 1. Create a group named admins with a fixed GID of 3500
 ```bash
-groupadd admin
+#Use help feature so that you are not confused. Option we will select will be "-g"
+[root@RedhatExam ~]# groupadd -h
+Usage: groupadd [options] GROUP
+
+Options:
+  -f, --force                   exit successfully if the group already exists,
+                                and cancel -g if the GID is already used
+  -g, --gid GID                 use GID for the new group
+  -h, --help                    display this help message and exit
+  -K, --key KEY=VALUE           override /etc/login.defs defaults
+  -o, --non-unique              allow to create groups with duplicate
+                                (non-unique) GID
+  -p, --password PASSWORD       use this encrypted password for the new group
+  -r, --system                  create a system account
+  -R, --root CHROOT_DIR         directory to chroot into
+  -P, --prefix PREFIX_DI        directory prefix
+  -U, --users USERS             list of user members of this group
+
+```
+Let us now create the group using '-g' flag
+```bash
+groupadd -g 3500 admins
 ```
 
-If repeating the lab, first use `getent group admin`.
-
-### Step 2: Create Harry and Natasha
-
+## 2. Create a group named users
 ```bash
-useradd -m -G admin harry
-passwd harry
-useradd -m -G admin natasha
-passwd natasha
+groupadd users
 ```
 
-Use the instructor-assigned lab password. The word `password` must never be used in real environments.
-
-### Step 3: Create Sarah
-
+## 3. Create the following user accounts
+### harry's account
+```shell
+-harry
+    - Primary group `admins`
+    - Secondary group `users`
+    - User ID 3455
+```
+`Note`: When we create a user in Linux, for example harry, then by Linux default settings harry's group name will also be harry.
 ```bash
-useradd -m -s /sbin/nologin sarah
-passwd sarah
+#On the exam use 'help' to searh
+useradd -h
+# or as below
+useradd -h | less
+//primary
+```
+Now, let us create harry's account:
+```bash
+useradd -g admins -G users -u 3455 harry
+```
+### natasha
+-natasha
+    - Supplementary groups: `admins` and `users`
+```bash
+useradd -G admins,users -u 3456 natasha
+```
+## sarah
+-sarah
+    - Must not be a member of the `admins` group
+    - Must not hav access to an interactive shell
+`NOTE`: A nologin shell is considered a non-interactive shell
+```bash
+which nologin
+/usr/sbin/nologin      #fullpath
+#use useradd -h to find out about '-s' flag
+
+useradd -s /sbin/nologin sarah
 ```
 
-### Step 4: Validate account data
+## bruce
+   -bruce
+    - Member of `admins` group
+    - Home direcctory must be created explicitly
+```bash
+#use useradd -h to find out about '-m' flag
+useradd -m -G admins bruce
+```
+## Set the password for all created users to: `password`
+We have two ways to create passwords:
+```bash
+# Option 1
+password harry
+password natasha
+password sarah
+password bruce
+
+# Option 2
+echo "password" | passwd --stdin harry
+echo "password" | passwd --stdin natasha
+echo "password" | passwd --stdin sarah
+echo "password" | passwd --stdin bruce
+
+# Option 3 - Adhoc Command meaning "A one line command - one liner"!
+for user in harry natasha sarah bruce: do echo "password" | passwd --stdin "$user; done
+```
+
+## Validate account data
 
 ```bash
 id harry
 id natasha
 id sarah
+id bruce
 getent group admin
-getent passwd harry natasha sarah
+getent passwd harry natasha sarah bruce
 pwck -r
 grpck -r
 ```
@@ -67,64 +139,15 @@ grpck -r
 ### Step 5: Test Sarah’s restriction
 
 ```bash
+su - sarah
+#or
 runuser -l sarah -c 'id'
 ```
 
-An account-unavailable message is expected.
-
-### Step 6: Save evidence
-
-```bash
-mkdir -p /root/nexusventures-project04/evidence
-id harry > /root/nexusventures-project04/evidence/harry.txt
-id natasha > /root/nexusventures-project04/evidence/natasha.txt
-id sarah > /root/nexusventures-project04/evidence/sarah.txt
-getent group admin > /root/nexusventures-project04/evidence/admin-group.txt
-```
-
-## 6. Required Validation
-
-```bash
-getent group admin
-id harry | grep admin
-id natasha | grep admin
-! id sarah | grep -q admin
-getent passwd sarah | grep '/sbin/nologin$'
-pwck -r
-grpck -r
-```
-
-## 7. Evidence Students Must Submit
-
-Submit `id` output for all users, the admin group record, passwd records, Sarah’s failed interactive-shell test, and an explanation of primary versus supplementary groups.
-
-## 8. Rollback or Cleanup
-
-Only after dependent projects are finished:
-
+## Rollback or Cleanup
 ```bash
 userdel -r harry
 userdel -r natasha
 userdel -r sarah
 groupdel admin
 ```
-
-## 9. Completion Checklist
-
-- [ ] Correct VM confirmed
-- [ ] Snapshot created when required
-- [ ] Original state recorded
-- [ ] Configuration completed
-- [ ] Validation passed
-- [ ] SELinux remains enforcing
-- [ ] firewalld remains enabled
-- [ ] Reboot persistence tested when required
-- [ ] Evidence collected
-- [ ] Rollback understood
-
-## 10. Review Questions
-
-1. What business problem did this project solve?
-2. Which command proved the configuration was active?
-3. Which command proved it was persistent?
-4. What could fail, and how would you roll back?
