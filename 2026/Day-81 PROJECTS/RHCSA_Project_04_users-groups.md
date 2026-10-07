@@ -5,20 +5,23 @@ On Note1, perform the following user and group management tasks:
 1. Create a group named admins with a fixed GID of 3500
 2. Create a group named users
 3. Create the following user accounts with the specified requirements:
-   a. harry
+```bash
+harry
     - Primary group `admins`
     - Secondary group `users`
     - User ID 3455
-   b. natasha
+natasha
     - Supplementary groups: `admins` and `users`
     - User ID of 3456
-   c. sarah
+sarah
     - Must not be a member of the `admins` group
     - Must not hav access to an interactive shell
-   d. bruce
+bruce
     - Member of `admins` group
     - Home direcctory must be created explicitly
+```
 4. Set the password for all created users to: `password`
+
 
 # Exam Solution
 ## 1. Create a group named admins with a fixed GID of 3500
