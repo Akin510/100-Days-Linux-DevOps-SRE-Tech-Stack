@@ -1,10 +1,28 @@
-# NexusVentures Project 05: Secure Collaborative Administration Workspace
+# Exam Question #5: Shared Group Directories and Permissions
 
 > **Platform:** Rocky Linux 9 VM in Xen Orchestra  
 > **Account:** `root`  
 > **Standard:** Keep SELinux enforcing and firewalld enabled. Persistent work must survive reboot.
 
-## 1. Exam Task Converted to a Project
+## 1. Exam Question #5
+On **Node1**, as root, create shared collaboration directories for group-based access with the following requirements[cite: 1]:
+
+1. Create the following directories[cite: 1]:
+   * `/groups/admins`[cite: 1]
+   * `/groups/users`[cite: 1]
+
+2. Configure `/groups/admins` as follows[cite: 1]:
+   * The **group owner** of the directory must be `admins`[cite: 1]
+   * Members of the `admins` group must have **full access** (read, write, and execute)[cite: 1]
+   * No access must be granted to users outside the admin group[cite: 1]
+   * The directory owner must remain `root`, with full access[cite: 1]
+   * All newly created files and directories within `/groups/admins` must automatically inherit the `admin` group ownership[cite: 1]
+
+3. Configure `/groups/users` as follows[cite: 1]:
+   * The **group owner** must be `users`[cite: 1]
+   * Owner and members of the `users` group must have read, write, and execute access[cite: 1]
+   * Other users must have no access[cite: 1]
+   * New files created in this directory can only be deleted by the file owner or root[cite: 1]
 
 Create `/common/admin` with group ownership `admin`, full access for group members, no access for others, and automatic group inheritance for new files.
 
