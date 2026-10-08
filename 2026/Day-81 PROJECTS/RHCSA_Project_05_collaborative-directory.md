@@ -8,7 +8,7 @@
 On **Node1**, as root, create shared collaboration directories for group-based access with the following requirements[cite: 1]:
 
 1. Create the following directories[cite: 1]:
-   * `/groups/admins`[cite: 1]
+   * `**/groups/admins**`[cite: 1]
    * `/groups/users`[cite: 1]
 
 2. Configure `/groups/admins` as follows[cite: 1]:
