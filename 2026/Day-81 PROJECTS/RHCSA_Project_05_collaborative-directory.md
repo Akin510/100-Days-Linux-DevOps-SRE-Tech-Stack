@@ -8,7 +8,7 @@
 On **Node1**, as root, create shared collaboration directories for group-based access with the following requirements[cite: 1]:
 
 1. Create the following directories[cite: 1]:
-   * `**/groups/admins**`[cite: 1]
+   * `/groups/admins`[cite: 1]
    * `/groups/users`[cite: 1]
 
 2. Configure `/groups/admins` as follows[cite: 1]:
@@ -24,7 +24,31 @@ On **Node1**, as root, create shared collaboration directories for group-based a
    * Other users must have no access[cite: 1]
    * New files created in this directory can only be deleted by the file owner or root[cite: 1]
 
-Create `/common/admin` with group ownership `admin`, full access for group members, no access for others, and automatic group inheritance for new files.
+## Exam Question #5 Solution
+### Solution Question 1:
+```bash
+mkdir -p /groups/admins /groups/users
+```
+
+## Solution Question 2:
+```bash
+ls -ld /groups/admins
+drwxr-xr-x. 2 **root** **root** 6 Oct  8 10:32 **/groups/admins**
+
+** Let us Change the group "root" using either 'chgrp' or 'chown -R' (NOT chmod - changes file permissions!)**
+chgrp admins /groups/admins
+ls -ld /groups/admins
+drwxr-xr-x. 2 **root** **admins** 6 Oct  8 10:32 **/groups/admins**
+ls -l /groups
+drwxr-xr-x. 2 **root** **root** 6 Oct  8 10:32 **admins**
+**drwxrwx---**. 2 **root** **root** 6 Oct  8 10:32 **users**
+chmod 770 /groups/admins
+ls -ld /groups/admins
+drwxr-xr-x. 2 **root** **root** 6 Oct  8 10:32 **/groups/admins**
+
+
+ls -ld /groups/admin
+
 
 ## 2. Business Scenario
 
