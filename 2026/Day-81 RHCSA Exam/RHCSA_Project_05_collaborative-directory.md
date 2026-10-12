@@ -66,7 +66,21 @@ chmod 1770 /groups/users
 ls -ld /groups/users
 drwxr-xr--T. 2 root users 6 Oct  8 10:32 /groups/users
 ```
+`Why this happens on the exam:`
+* Lowercase t means: Sticky bit is on AND others have execute permission (--x).
+* Capital T means: Sticky bit is on AND others do not have execute permission (--- or r--).
 
+`IMPORTANT` - If the exam says sticky bit is on AND others should have execute permission. Then, to correct the capital T to a lowercase t, you need to add the execute permission (+x) for others on the /groups/users directory
+```bash
+chmod o+x /groups/users
+ls -ld /groups/users
+```
+
+> Why is there a capital T?
+* The t flag represents the Sticky Bit (used on shared directories like /tmp so users can only delete their own files).
+* `Capital T`: The Sticky Bit is set, but others do not have execute (x) permissions.
+* `Lowercase t`: The Sticky Bit is set, and others DO have execute (x) permissions.
+In Linux permissions, executable search permission (x) on a directory is required to enter (cd) or access files inside it. Without x for others, the sticky bit is effectively dormant, which Linux indicates using a capital T.
 ## Test and Validate
 ```bash
 touch /groups/admins/file1.txt
