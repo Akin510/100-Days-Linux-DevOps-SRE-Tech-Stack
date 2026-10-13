@@ -42,8 +42,8 @@ ugo 400
 ugo 500
 
 #Let us calculate the new Umask Value that will be applied to user bruce
-# echo $(( 666 - umask = actual permission ))
-# echo $(( 666 - actual permission = umask ))
+# echo $(( 777 - umask = actual permission ))
+# echo $(( 777 - actual permission = umask ))
 ALWAYS DERIVE YOUR UMASK FROM DESIRED DIRECTORY PERMISSION
 echo $(( 777 - 500 = umask ))
 277
