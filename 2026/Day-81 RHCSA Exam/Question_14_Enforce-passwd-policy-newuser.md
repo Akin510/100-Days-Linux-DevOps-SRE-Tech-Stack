@@ -2,7 +2,7 @@
 
 
 ## 1. Exam Question #14
-On **Node1**, configure the system so that `all newly created users` mmeet the following password requirements::
+On **Node1**, configure the system so that `all newly created users` meet the following password requirements::
    * Passwords must expire after 30 days
    * Passwords must be at least `9 characters long`
 
