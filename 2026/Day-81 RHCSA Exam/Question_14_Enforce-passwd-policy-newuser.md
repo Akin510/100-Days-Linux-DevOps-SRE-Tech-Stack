@@ -6,7 +6,7 @@ On **Node1**, configure the system so that `all newly created users` meet the fo
    * Passwords must expire after 30 days
    * Passwords must be at least `9 characters long`
 
-## Exam Question #5 Solution
+## Exam Question #14 Solution
 ### Solution Question 1:
 > This Question Tests your usage of /etc/logins.def!
 * This is where we configure `password aging parameters`
