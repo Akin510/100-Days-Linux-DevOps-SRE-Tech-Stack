@@ -1,8 +1,5 @@
 # Exam Question #5: Shared Group Directories and Permissions
 
-> **Platform:** Rocky Linux 9 VM in Xen Orchestra  
-> **Account:** `root`  
-> **Standard:** Keep SELinux enforcing and firewalld enabled. Persistent work must survive reboot.
 
 ## 1. Exam Question #5
 On **Node1**, as root, create shared collaboration directories for group-based access with the following requirements:
