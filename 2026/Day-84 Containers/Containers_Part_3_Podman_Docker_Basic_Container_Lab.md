@@ -17,30 +17,20 @@ After this lab, students should be able to:
 - Pull an Apache HTTP Server image in preparation for the next exercise.
 
 ## 1. Install Podman
-
-The original lecture uses `yum` and mentions the `container-tools` module. On **Rocky Linux 9**, use `dnf` to install Podman directly:
-
-```bash
-sudo dnf install -y podman
-```
-
-The lecture's original installation commands were:
-
-```bash
-# Original RHEL/CentOS lecture commands
-# yum install podman
-# yum module install container-tools
-```
-
 > **Rocky Linux 9 note:** The module command from older releases is not required for this lab. `podman` can be installed directly from the available Rocky Linux repositories.
+* The original lecture uses `yum` and mentions the `container-tools` module. 
+* On **Rocky Linux 9**, use `dnf` to install Podman directly:
 
+```bash
+dnf install -y podman
+
+```
 Verify the installation:
 
 ```bash
 podman --version
 podman --help
 ```
-
 If Podman displays its version and help information, the command-line tool is available.
 
 ## 2. Understand Container Registries
